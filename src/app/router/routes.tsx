@@ -7,6 +7,7 @@ import { HomePage } from "@/pages/home/home.page";
 import { ForgotPasswordPage } from "@/pages/forgot-password/forgot-password.page";
 import { DashboardPage } from "@/pages/dashboard/dashboard.page";
 import { ResumeOptimizerPage } from "@/pages/resume-optimizer/resume-optimizer.page";
+import { ResumeManagerPage } from "@/pages/resume-manager/resume-manager.page";
 import { JobsPage } from "@/pages/jobs/jobs.page";
 import { ScanHistoryPage } from "@/pages/scan-history/scan-history.page";
 import { MatchReportPage } from "@/pages/match-report/match-report.page";
@@ -60,6 +61,16 @@ export const resumeOptimizerRoute = createRoute({
   component: () => (
     <Protected>
       <ResumeOptimizerPage />
+    </Protected>
+  ),
+});
+
+export const resumeManagerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/resume-manager",
+  component: () => (
+    <Protected>
+      <ResumeManagerPage />
     </Protected>
   ),
 });

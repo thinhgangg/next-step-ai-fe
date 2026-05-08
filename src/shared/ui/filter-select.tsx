@@ -17,6 +17,7 @@ type FilterSelectProps<T extends string> = {
   onSelect: (value: T) => void;
   selectedValue?: T;
   menuWidthClass?: string;
+  menuClassName?: string;
   align?: "left" | "right";
   leadingIcon?: ReactNode;
   buttonClassName?: string;
@@ -31,6 +32,7 @@ export function FilterSelect<T extends string>({
   onSelect,
   selectedValue,
   menuWidthClass = "w-36",
+  menuClassName,
   align = "left",
   leadingIcon,
   buttonClassName,
@@ -56,7 +58,7 @@ export function FilterSelect<T extends string>({
 
       {isOpen && (
         <div
-          className={`absolute ${alignmentClass} top-[calc(100%+4px)] z-20 ${menuWidthClass} rounded-lg border border-border bg-card py-1 shadow-lg`}
+          className={`absolute ${alignmentClass} top-[calc(100%+4px)] z-20 ${menuWidthClass} rounded-lg border border-border bg-card py-1 shadow-lg ${menuClassName ?? ""}`}
         >
           {options.map((item) => (
             <button

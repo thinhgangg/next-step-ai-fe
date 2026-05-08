@@ -69,6 +69,7 @@ type UseJobsCatalogParams = {
   dateRange: JobDateRangeOption;
   employmentType: EmploymentTypeFilterOption;
   experienceRange: ExperienceFilterOption;
+  cvId?: number;
   skip?: boolean;
 };
 
@@ -81,6 +82,7 @@ export function useJobsCatalog({
   dateRange,
   employmentType,
   experienceRange,
+  cvId,
   skip = false,
 }: UseJobsCatalogParams) {
   const query = useQuery<GetJobsResponse>(GET_JOBS, {
@@ -93,6 +95,7 @@ export function useJobsCatalog({
       dateRange,
       employmentType: employmentType === "ALL" ? undefined : employmentType,
       experienceRange: experienceRange === "ALL" ? undefined : experienceRange,
+      cvId,
     },
     skip,
     notifyOnNetworkStatusChange: true,

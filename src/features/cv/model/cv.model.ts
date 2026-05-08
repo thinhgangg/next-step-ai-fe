@@ -3,9 +3,15 @@ import { useState } from "react";
 import {
   ANALYZE_CV,
   CONFIRM_CV_UPLOAD,
+  DELETE_CV,
   GET_PRESIGNED_URL,
+  RENAME_CV,
 } from "../mutation/cv.mutation";
-import { GET_CV_ANALYSIS_RESULT } from "../query/cv.query";
+import {
+  GET_CV_ANALYSIS_HISTORY,
+  GET_CV_ANALYSIS_RESULT,
+  USER_CVS,
+} from "../query/cv.query";
 
 interface GetPresignedUrlResponse {
   getPresignedUrl: {
@@ -18,10 +24,19 @@ export type UploadedCv = {
   cvId: string;
   fileName: string;
   fileUrl: string;
+  uploadedAt?: string;
 };
 
 interface ConfirmCvUploadResponse {
   confirmCvUpload: UploadedCv;
+}
+
+interface DeleteCvResponse {
+  deleteCv: boolean;
+}
+
+interface RenameCvResponse {
+  renameCv: UploadedCv;
 }
 
 export type CvSkillAnalysis = {
@@ -135,6 +150,27 @@ interface GetCvAnalysisResultResponse {
   getCvAnalysisResult: CvAnalysisResult;
 }
 
+interface UserCvsResponse {
+  userCvs: UploadedCv[];
+}
+
+export type CvAnalysisHistoryItem = {
+  analysisId: number;
+  jobId: number;
+  jobTitle: string;
+  cvFilename?: string | null;
+  createdAt: string;
+  jobMatchScore?: number | null;
+  roadmapTotalWeeks?: number | null;
+};
+
+interface GetCvAnalysisHistoryResponse {
+  getCvAnalysisHistory: {
+    total: number;
+    items: CvAnalysisHistoryItem[];
+  };
+}
+
 export function useUploadCv() {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -172,6 +208,7 @@ export function useUploadCv() {
           fileName: file.name,
           fileKey,
         },
+        refetchQueries: [{ query: USER_CVS }],
       });
 
       if (!confirmData) throw new Error("Failed to confirm upload");
@@ -223,6 +260,80 @@ export function useCvAnalysisResult(analysisId?: number | null) {
 
   return {
     analysis: query.data?.getCvAnalysisResult ?? null,
+    loading: query.loading,
+    error: query.error,
+  };
+}
+
+export function useUserCvs() {
+  const query = useQuery<UserCvsResponse>(USER_CVS, {
+    fetchPolicy: "cache-and-network",
+  });
+
+  return {
+    cvs: query.data?.userCvs ?? [],
+    loading: query.loading,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
+
+export function useDeleteCv() {
+  const [deleteCvMutation, state] = useMutation<DeleteCvResponse>(DELETE_CV);
+
+  const deleteCv = async (cvId: number) => {
+    const { data } = await deleteCvMutation({
+      variables: { cvId },
+      refetchQueries: [{ query: USER_CVS }],
+      awaitRefetchQueries: true,
+    });
+
+    return Boolean(data?.deleteCv);
+  };
+
+  return {
+    deleteCv,
+    isDeleting: state.loading,
+    error: state.error,
+  };
+}
+
+export function useRenameCv() {
+  const [renameCvMutation, state] = useMutation<RenameCvResponse>(RENAME_CV);
+
+  const renameCv = async (cvId: number, fileName: string) => {
+    const { data } = await renameCvMutation({
+      variables: { cvId, fileName },
+      refetchQueries: [{ query: USER_CVS }],
+      awaitRefetchQueries: true,
+    });
+
+    if (!data) {
+      throw new Error("Failed to rename CV");
+    }
+
+    return data.renameCv;
+  };
+
+  return {
+    renameCv,
+    isRenaming: state.loading,
+    error: state.error,
+  };
+}
+
+export function useCvAnalysisHistory(limit = 100) {
+  const query = useQuery<GetCvAnalysisHistoryResponse>(
+    GET_CV_ANALYSIS_HISTORY,
+    {
+      variables: { limit },
+      fetchPolicy: "cache-and-network",
+    },
+  );
+
+  return {
+    items: query.data?.getCvAnalysisHistory.items ?? [],
+    total: query.data?.getCvAnalysisHistory.total ?? 0,
     loading: query.loading,
     error: query.error,
   };

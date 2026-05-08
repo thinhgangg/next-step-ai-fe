@@ -129,4 +129,21 @@ export const ANALYZE_CV = gql`
   ${CV_ANALYSIS_FIELDS}
 `;
 
+export const DELETE_CV = gql`
+  mutation DeleteCv($cvId: Int!) {
+    deleteCv(cvId: $cvId)
+  }
+`;
+
+export const RENAME_CV = gql`
+  mutation RenameCv($cvId: Int!, $fileName: String!) {
+    renameCv(cvId: $cvId, fileName: $fileName) {
+      cvId
+      fileName
+      fileUrl
+      uploadedAt
+    }
+  }
+`;
+
 export { CV_ANALYSIS_FIELDS };

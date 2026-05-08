@@ -6,60 +6,67 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   Search,
 } from "lucide-react";
+import { useCvAnalysisHistory } from "@/features/cv/model/cv.model";
 
 export type ScanHistoryItem = {
   id: string;
+  analysisId: number;
   score: number;
-  companyName: string;
+  cvFilename: string;
   jobTitle: string;
   jobDescription: string;
   scanDate: string;
+  scanTimestamp: number;
 };
 
 type ScanHistorySectionProps = {
   hasScan: boolean;
   onScanResume?: () => void;
-  items?: ScanHistoryItem[];
 };
 
 type SortBy = "scanDate" | "score";
 type SortOrder = "desc" | "asc";
 
-const DEFAULT_SCAN_HISTORY: ScanHistoryItem[] = [
-  {
-    id: "scan-1",
-    score: 25,
-    companyName: "Google LLC",
-    jobTitle: "Full Stack Developer",
-    jobDescription:
-      "We are looking for a highly skilled computer programmer who is comfortable with both front and back development.",
-    scanDate: "Apr 12, 2026",
-  },
-  {
-    id: "scan-2",
-    score: 35,
-    companyName: "International Business Consulting",
-    jobTitle: "Backend Engineer",
-    jobDescription:
-      "Job Title: Backend Engineer. We are seeking a Backend Engineer to join our team and build reliable services.",
-    scanDate: "Apr 1, 2026",
-  },
-];
-
 function ScoreRing({ score }: { score: number }) {
-  const clamped = Math.max(0, Math.min(100, score));
+  const clamped = Math.max(0, Math.min(100, Math.round(score)));
+
+  const color =
+    clamped >= 85
+      ? "#16a34a"
+      : clamped >= 70
+        ? "#2563eb"
+        : clamped >= 50
+          ? "#f59e0b"
+          : clamped >= 30
+            ? "#f97316"
+            : "#ef4444";
+
+  const label =
+    clamped >= 85
+      ? "Excellent"
+      : clamped >= 70
+        ? "Good"
+        : clamped >= 50
+          ? "Average"
+          : clamped >= 30
+            ? "Low"
+            : "Very low";
 
   return (
-    <div
-      className="relative h-10 w-10 rounded-full"
-      style={{
-        background: `conic-gradient(hsl(var(--primary)) ${clamped}%, hsl(var(--border)) ${clamped}% 100%)`,
-      }}
-    >
-      <div className="absolute inset-[3px] flex items-center justify-center rounded-full bg-card text-base font-bold text-foreground">
-        {clamped}
+    <div className="flex items-center gap-3">
+      <div
+        className="relative h-11 w-11 shrink-0 rounded-full"
+        title={`${clamped} - ${label}`}
+        style={{
+          background: `conic-gradient(${color} ${clamped}%, #e5e7eb ${clamped}% 100%)`,
+        }}
+      >
+        <div className="absolute inset-[4px] flex items-center justify-center rounded-full bg-card text-sm font-bold text-foreground">
+          {clamped}
+        </div>
       </div>
     </div>
   );
@@ -71,19 +78,46 @@ function parseScanDate(scanDate: string) {
   return parsed;
 }
 
-export function ScanHistorySection({
-  hasScan,
-  onScanResume,
-  items = DEFAULT_SCAN_HISTORY,
-}: ScanHistorySectionProps) {
+export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
+  const { items: historyItems, loading, error } = useCvAnalysisHistory();
   const [searchValue, setSearchValue] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("scanDate");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const pageSize = 5;
-  const hasHistory = hasScan && items.length > 0;
+  const pageSize = 10;
+  const items = useMemo<ScanHistoryItem[]>(
+    () =>
+      historyItems.map((item) => {
+        const timestamp = new Date(item.createdAt).getTime();
+        const scanTimestamp = Number.isNaN(timestamp) ? 0 : timestamp;
+        const scanDate = scanTimestamp
+          ? new Intl.DateTimeFormat("en-US", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            }).format(new Date(scanTimestamp))
+          : "Unknown date";
+
+        return {
+          id: String(item.analysisId),
+          analysisId: item.analysisId,
+          score: item.jobMatchScore ?? 0,
+          cvFilename: item.cvFilename ?? "Uploaded CV",
+          jobTitle: item.jobTitle || "Unknown job",
+          jobDescription:
+            item.roadmapTotalWeeks && item.roadmapTotalWeeks > 0
+              ? `Roadmap estimated at ${item.roadmapTotalWeeks} weeks.`
+              : `Analysis result #${item.analysisId} for job #${item.jobId}.`,
+          scanDate,
+          scanTimestamp,
+        };
+      }),
+    [historyItems],
+  );
+  const hasHistory = items.length > 0;
+  const isInitialLoading = loading && historyItems.length === 0;
 
   const filteredAndSortedItems = useMemo(() => {
     const normalizedQuery = searchValue.trim().toLowerCase();
@@ -92,7 +126,7 @@ export function ScanHistorySection({
       if (!normalizedQuery) return true;
 
       return (
-        item.companyName.toLowerCase().includes(normalizedQuery) ||
+        item.cvFilename.toLowerCase().includes(normalizedQuery) ||
         item.jobTitle.toLowerCase().includes(normalizedQuery) ||
         item.jobDescription.toLowerCase().includes(normalizedQuery)
       );
@@ -103,8 +137,8 @@ export function ScanHistorySection({
         return sortOrder === "desc" ? b.score - a.score : a.score - b.score;
       }
 
-      const aDate = parseScanDate(a.scanDate);
-      const bDate = parseScanDate(b.scanDate);
+      const aDate = a.scanTimestamp || parseScanDate(a.scanDate);
+      const bDate = b.scanTimestamp || parseScanDate(b.scanDate);
       return sortOrder === "desc" ? bDate - aDate : aDate - bDate;
     });
 
@@ -239,9 +273,23 @@ export function ScanHistorySection({
       </section>
 
       <section className="bg-background p-5">
-        <div className="space-y-4">
-          {!hasHistory ? (
-            <div className="p-8 text-center">
+        <div className="min-h-[320px] space-y-4">
+          {isInitialLoading ? (
+            <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                Loading...
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
+              <h3 className="mb-1 text-base font-bold text-foreground">
+                Unable to load scan history
+              </h3>
+              <p className="text-sm text-muted-foreground">{error.message}</p>
+            </div>
+          ) : !hasHistory ? (
+            <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
               <div className="relative mx-auto mb-4 h-16 w-16">
                 <div className="absolute left-1 top-1 h-12 w-10 space-y-0.5 rounded border border-border bg-card p-1.5">
                   <div className="h-1 w-full rounded bg-border/70" />
@@ -279,14 +327,12 @@ export function ScanHistorySection({
             <>
               <div className="overflow-hidden rounded-xl border border-border bg-card">
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[860px] table-fixed">
+                  <table className="w-full min-w-[760px] table-fixed">
                     <thead>
                       <tr className="border-b border-border bg-card text-left text-sm font-semibold text-foreground">
                         <th className="w-[92px] px-5 py-3">Score</th>
-                        <th className="w-[280px] px-4 py-3">
-                          Company name / Job title
-                        </th>
-                        <th className="px-4 py-3">Job description</th>
+                        <th className="w-[280px] px-4 py-3">CV</th>
+                        <th className="px-4 py-3">Job title</th>
                         <th className="w-[160px] px-4 py-3">Scan date</th>
                       </tr>
                     </thead>
@@ -297,23 +343,20 @@ export function ScanHistorySection({
                             key={item.id}
                             className="border-b border-border last:border-b-0 hover:bg-muted/40"
                           >
-                            <td className="px-5 py-4 align-top">
+                            <td className="px-5 py-4 align-middle">
                               <ScoreRing score={item.score} />
                             </td>
-                            <td className="px-4 py-4 align-top">
+                            <td className="px-4 py-4 align-middle">
                               <p className="line-clamp-1 text-sm font-semibold text-foreground">
-                                {item.companyName}
+                                {item.cvFilename}
                               </p>
+                            </td>
+                            <td className="px-4 py-4 align-middle">
                               <p className="line-clamp-2 text-sm font-semibold text-primary">
                                 {item.jobTitle}
                               </p>
                             </td>
-                            <td className="px-4 py-4 align-top">
-                              <p className="line-clamp-2 text-sm text-muted-foreground">
-                                {item.jobDescription}
-                              </p>
-                            </td>
-                            <td className="px-4 py-4 align-top text-sm text-muted-foreground">
+                            <td className="px-4 py-4 align-middle text-sm text-muted-foreground">
                               {item.scanDate}
                             </td>
                           </tr>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,8 +16,8 @@ import {
   CalendarClock,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { BRAND } from "@/shared/config/brand";
 import { useJobsCatalog } from "@/features/jobs/model/jobs.model";
+import { useUserCvs } from "@/features/cv/model/cv.model";
 import type {
   JobDateRangeOption,
   JobItem,
@@ -28,7 +28,14 @@ import type {
 import { FilterSelect, type SelectOption } from "@/shared/ui/filter-select";
 
 type SearchMode = "keyword" | "resume";
-type DropdownName = "mode" | "date" | "type" | "experience" | "sort" | null;
+type DropdownName =
+  | "mode"
+  | "cv"
+  | "date"
+  | "type"
+  | "experience"
+  | "sort"
+  | null;
 type PaginationItem = number | "...";
 
 type JobsBrowserProps = {
@@ -39,6 +46,17 @@ type JobsBrowserProps = {
 };
 
 const PAGE_SIZE = 6;
+const RESUME_MATCH_CV_STORAGE_KEY = "nextstep.jobs.resumeCvId";
+
+function getInitialResumeCvId() {
+  const rawValue = sessionStorage.getItem(RESUME_MATCH_CV_STORAGE_KEY);
+  if (!rawValue) return null;
+
+  const numericValue = Number(rawValue);
+  return Number.isFinite(numericValue) && numericValue > 0
+    ? numericValue
+    : null;
+}
 
 const DATE_OPTIONS: Array<{ value: JobDateRangeOption; label: string }> = [
   { value: "ANY", label: "Any time" },
@@ -80,14 +98,13 @@ const MODE_OPTIONS: Array<SelectOption<SearchMode>> = [
   {
     value: "keyword",
     label: "Search by keyword",
-    description:
-      "Describe what you're looking for, and we'll find matching jobs for you.",
+    description: "What job are you looking for? We’ll find matches.",
     icon: <Search className="h-4 w-4" />,
   },
   {
     value: "resume",
     label: "Use my resume",
-    description: "All will recommend jobs based on your latest resume.",
+    description: "AI will recommend jobs based on a CV you've uploaded.",
     icon: <FileText className="h-4 w-4" />,
   },
 ];
@@ -299,13 +316,15 @@ function EmptyResults({
 }
 
 export function JobsBrowser({
-  hasScan,
   title,
   description,
   onCreateScan,
 }: JobsBrowserProps) {
   const navigate = useNavigate();
-  const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
+  const initialResumeCvId = useMemo(() => getInitialResumeCvId(), []);
+  const [searchMode, setSearchMode] = useState<SearchMode>(
+    initialResumeCvId !== null ? "resume" : "keyword",
+  );
   const [sortBy, setSortBy] = useState<JobSortOption>("RELEVANCE");
   const [dateRange, setDateRange] = useState<JobDateRangeOption>("ANY");
   const [employmentType, setEmploymentType] =
@@ -319,14 +338,42 @@ export function JobsBrowser({
   const [appliedLocation, setAppliedLocation] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [selectedCvId, setSelectedCvId] = useState<number | null>(
+    initialResumeCvId,
+  );
 
-  const shouldFetch = searchMode === "keyword" || hasScan;
+  useEffect(() => {
+    if (initialResumeCvId !== null) {
+      sessionStorage.removeItem(RESUME_MATCH_CV_STORAGE_KEY);
+    }
+  }, [initialResumeCvId]);
+
+  const { cvs, loading: isLoadingCvs } = useUserCvs();
+  const cvOptions = useMemo(
+    () =>
+      cvs.map((cv) => ({
+        value: String(cv.cvId),
+        label: cv.fileName,
+        description: cv.uploadedAt
+          ? `Uploaded ${formatRelativeDate(cv.uploadedAt).toLowerCase()}`
+          : undefined,
+        icon: <FileText className="h-4 w-4" />,
+      })),
+    [cvs],
+  );
+  const selectedCv = useMemo(
+    () => cvs.find((cv) => Number(cv.cvId) === selectedCvId) ?? null,
+    [cvs, selectedCvId],
+  );
+
+  const shouldFetch = searchMode === "keyword" || selectedCvId !== null;
   const isKeywordMode = searchMode === "keyword";
   const offset = (currentPage - 1) * PAGE_SIZE;
 
   const { jobs, totalCount, loading, error } = useJobsCatalog({
     search: isKeywordMode ? appliedKeyword.trim() : undefined,
-    location: isKeywordMode ? appliedLocation.trim() : undefined,
+    location: appliedLocation.trim(),
+    cvId: !isKeywordMode && selectedCvId !== null ? selectedCvId : undefined,
     limit: PAGE_SIZE,
     offset,
     sortBy,
@@ -359,10 +406,16 @@ export function JobsBrowser({
 
     if (nextMode === "resume") {
       setKeywordInput("");
-      setLocationInput("");
       setAppliedKeyword("");
-      setAppliedLocation("");
+    } else {
+      setSelectedCvId(null);
     }
+  };
+
+  const handleCvChange = (nextValue: string) => {
+    setSelectedCvId(Number(nextValue));
+    setCurrentPage(1);
+    setSelectedJobId(null);
   };
 
   const handleDateRangeChange = (nextValue: JobDateRangeOption) => {
@@ -427,7 +480,9 @@ export function JobsBrowser({
   const applicationDeadlineText = formatApplicationDeadline(
     selectedJob?.applicationDeadline,
   );
-  const modeLabel = searchMode === "keyword" ? "Keywords" : "Use my resume";
+  const modeLabel = searchMode === "keyword" ? "Keywords" : "Resume";
+  const cvLabel =
+    selectedCv?.fileName ?? (isLoadingCvs ? "Loading CVs" : "Choose CV");
   const modeLeadingIcon =
     searchMode === "keyword" ? (
       <Search className="h-4 w-4" />
@@ -483,17 +538,36 @@ export function JobsBrowser({
               event.preventDefault();
               handleKeywordSearch();
             }}
-            className="flex min-w-0 flex-1 flex-wrap items-center gap-2 font-sans"
+            className="grid min-w-0 flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(360px,2fr)_240px_110px]"
           >
-            <div className="relative min-w-[260px] flex-1">
-              <input
-                value={keywordInput}
-                onChange={(event) => setKeywordInput(event.target.value)}
-                placeholder="Job title, keywords, or company"
-                className="h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground"
-              />
+            <div className="min-w-0">
+              {isKeywordMode ? (
+                <input
+                  value={keywordInput}
+                  onChange={(event) => setKeywordInput(event.target.value)}
+                  placeholder="Job title, keywords, or company"
+                  className="h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground"
+                />
+              ) : (
+                <FilterSelect
+                  label={cvLabel}
+                  leadingIcon={<FileText className="h-4 w-4" />}
+                  isOpen={openDropdown === "cv"}
+                  onToggle={() => toggleDropdown("cv")}
+                  onClose={closeDropdown}
+                  options={cvOptions}
+                  onSelect={handleCvChange}
+                  selectedValue={
+                    selectedCvId !== null ? String(selectedCvId) : undefined
+                  }
+                  menuWidthClass="w-full"
+                  menuClassName="max-h-72 overflow-y-auto"
+                  buttonClassName="h-10 w-full justify-between text-sm"
+                />
+              )}
             </div>
-            <div className="relative min-w-[200px]">
+
+            <div className="relative min-w-0">
               <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={locationInput}
@@ -502,9 +576,10 @@ export function JobsBrowser({
                 className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground"
               />
             </div>
+
             <button
               type="submit"
-              className="h-10 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              className="h-10 w-full rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
               Search
             </button>
@@ -571,12 +646,17 @@ export function JobsBrowser({
       </section>
 
       <section className="bg-background p-5">
-        {searchMode === "resume" && !hasScan ? (
+        {searchMode === "resume" && cvs.length === 0 && !isLoadingCvs ? (
           <EmptyResults
-            title={`Let ${BRAND.name} match jobs for you`}
-            description="Complete a scan first, then this section will switch from guidance to resume-based job discovery."
-            actionLabel="Scan new"
+            title="No CVs uploaded yet"
+            description="Upload a CV from the dashboard, then choose it here to rank jobs by your resume."
+            actionLabel="Upload CV"
             onAction={handleCreateScan}
+          />
+        ) : searchMode === "resume" && selectedCvId === null ? (
+          <EmptyResults
+            title="Choose a CV"
+            description="Select one of your uploaded CVs above to find jobs ranked by resume fit."
           />
         ) : loading ? (
           <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">

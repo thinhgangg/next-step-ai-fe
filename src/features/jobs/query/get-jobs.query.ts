@@ -10,6 +10,7 @@ export const GET_JOBS = gql`
     $dateRange: JobDateRange!
     $employmentType: String
     $experienceRange: String
+    $cvId: Int
   ) {
     getJobs(
       search: $search
@@ -20,6 +21,7 @@ export const GET_JOBS = gql`
       dateRange: $dateRange
       employmentType: $employmentType
       experienceRange: $experienceRange
+      cvId: $cvId
     ) {
       totalCount
       items {

@@ -9,3 +9,31 @@ export const GET_CV_ANALYSIS_RESULT = gql`
   }
   ${CV_ANALYSIS_FIELDS}
 `;
+
+export const USER_CVS = gql`
+  query UserCvs {
+    userCvs {
+      cvId
+      fileName
+      fileUrl
+      uploadedAt
+    }
+  }
+`;
+
+export const GET_CV_ANALYSIS_HISTORY = gql`
+  query GetCvAnalysisHistory($limit: Int) {
+    getCvAnalysisHistory(limit: $limit) {
+      total
+      items {
+        analysisId
+        jobId
+        jobTitle
+        cvFilename
+        createdAt
+        jobMatchScore
+        roadmapTotalWeeks
+      }
+    }
+  }
+`;

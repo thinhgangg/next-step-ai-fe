@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   User,
+  Folder,
 } from "lucide-react";
 import { BRAND } from "@/shared/config/brand";
 import { storage } from "@/shared/lib/storage";
@@ -24,7 +25,12 @@ type NavItem = {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  to?: "/dashboard" | "/resume-optimizer" | "/jobs" | "/scan-history";
+  to?:
+    | "/dashboard"
+    | "/resume-optimizer"
+    | "/resume-manager"
+    | "/jobs"
+    | "/scan-history";
 };
 
 const navItems: NavItem[] = [
@@ -40,7 +46,12 @@ const navItems: NavItem[] = [
   // { id: "job-tracker", label: "Job Tracker", icon: Calendar },
   { id: "find-jobs", label: "Find Jobs", icon: Search, to: "/jobs" },
   // { id: "resume-builder", label: "Resume Builder", icon: Pencil },
-  // { id: "resume-manager", label: "Resume Manager", icon: Folder },
+  {
+    id: "resume-manager",
+    label: "Resume Manager",
+    icon: Folder,
+    to: "/resume-manager",
+  },
   {
     id: "scan-history",
     label: "Scan History",
