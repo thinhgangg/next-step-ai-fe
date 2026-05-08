@@ -333,7 +333,7 @@ export function HomeLandingWidget() {
         </div>
       </section>
 
-      <section className="border-y border-border/40 py-10">
+      <section className="border-y border-border/40 bg-muted/60 py-10">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:px-6 md:flex-row">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-0.5 text-muted-foreground">
@@ -379,7 +379,7 @@ export function HomeLandingWidget() {
               return (
                 <article
                   key={feature.id}
-                  className="rounded-xl border border-border bg-card p-8 transition-colors hover:border-foreground"
+                  className="rounded-xl border border-border bg-card p-8 transition-colors hover:border-primary/50"
                 >
                   <Icon className="mb-6 h-8 w-8 text-primary" />
                   <h4 className="mb-3 text-lg font-bold">{feature.title}</h4>
@@ -427,10 +427,10 @@ export function HomeLandingWidget() {
         </div>
       </section>
 
-      <section id="pricing" className="bg-foreground py-20 text-background">
+      <section id="pricing" className="bg-muted py-20">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
           <div className="mb-14 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-background">
+            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
               Simple, Professional Pricing
             </h2>
             <p className="text-muted-foreground">
@@ -472,7 +472,7 @@ export function HomeLandingWidget() {
               </button>
             </article>
 
-            <article className="relative flex scale-[1.01] flex-col rounded-xl border-2 border-foreground bg-card p-8 shadow-2xl text-foreground">
+            <article className="relative flex scale-[1.01] flex-col rounded-xl border-2 border-primary/50 bg-card p-8 shadow-2xl text-foreground">
               <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                 Most Popular
               </span>
@@ -556,28 +556,28 @@ export function HomeLandingWidget() {
         </button>
       </section>
 
-      <footer className="border-t border-border bg-background px-4 py-16 sm:px-6">
+      <footer className="border-t border-foreground bg-foreground px-4 py-16 text-background sm:px-6">
         <div className="mx-auto w-full max-w-7xl">
           <div className="mb-14 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2">
-              <span className="mb-4 block text-xl font-bold text-foreground">
+              <span className="mb-4 block text-xl font-bold text-background">
                 {BRAND.name}
               </span>
-              <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+              <p className="max-w-xs text-sm leading-relaxed text-background/70">
                 AI-powered resume and job application platform. Precision
                 engineered to help you land your dream role.
               </p>
             </div>
 
             <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
                 Product
               </h5>
-              <ul className="space-y-4 text-sm text-muted-foreground">
+              <ul className="space-y-4 text-sm text-background/70">
                 <li>
                   <a
                     href="#features"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Features
                   </a>
@@ -585,7 +585,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#how-it-works"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     How It Works
                   </a>
@@ -593,7 +593,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#pricing"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Pricing
                   </a>
@@ -601,7 +601,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     API
                   </a>
@@ -610,14 +610,14 @@ export function HomeLandingWidget() {
             </div>
 
             <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
                 Company
               </h5>
-              <ul className="space-y-4 text-sm text-muted-foreground">
+              <ul className="space-y-4 text-sm text-background/70">
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     About Us
                   </a>
@@ -625,7 +625,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Careers
                   </a>
@@ -633,7 +633,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Blog
                   </a>
@@ -641,7 +641,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Contact
                   </a>
@@ -650,14 +650,14 @@ export function HomeLandingWidget() {
             </div>
 
             <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
                 Social
               </h5>
-              <ul className="space-y-4 text-sm text-muted-foreground">
+              <ul className="space-y-4 text-sm text-background/70">
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     Twitter
                   </a>
@@ -665,7 +665,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     LinkedIn
                   </a>
@@ -673,7 +673,7 @@ export function HomeLandingWidget() {
                 <li>
                   <a
                     href="#"
-                    className="transition-colors hover:text-foreground"
+                    className="transition-colors hover:text-background"
                   >
                     GitHub
                   </a>
@@ -682,19 +682,19 @@ export function HomeLandingWidget() {
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
-            <span className="text-xs text-muted-foreground">
+          <div className="flex flex-col items-center justify-between gap-4 border-t border-background/15 pt-8 md:flex-row">
+            <span className="text-xs text-background/60">
               © 2026 {BRAND.name}. All rights reserved.
             </span>
             <div className="flex gap-6">
               <a
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="text-xs text-background/60 transition-colors hover:text-background"
                 href="#"
               >
                 Privacy Policy
               </a>
               <a
-                className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+                className="text-xs text-background/60 transition-colors hover:text-background"
                 href="#"
               >
                 Terms of Service

@@ -553,7 +553,7 @@ export function ScanWidget({
   }, [isPreparingScan, loadingStage]);
 
   return (
-    <section id="how-it-works" className="bg-muted py-20">
+    <section id="how-it-works" className="bg-[oklch(0.975_0_0)] py-20">
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         <div className="mb-12">
           <h2 className="mb-4 text-center text-3xl font-bold tracking-tight">
