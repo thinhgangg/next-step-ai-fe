@@ -11,6 +11,7 @@ type CurrentUser = {
   name: string;
   email: string;
   avatar?: string | null;
+  baseCvId?: number | null;
 };
 
 export function useSession() {

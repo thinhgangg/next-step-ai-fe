@@ -18,11 +18,13 @@ import {
   useCvAnalysisHistory,
   useDeleteCv,
   useRenameCv,
+  useSetBaseCv,
   useUploadCv,
   useUserCvs,
   type UploadedCv,
 } from "@/features/cv/model/cv.model";
 import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
+import { useSession } from "@/features/auth/session/session.model";
 
 function formatUploadDate(value?: string | null) {
   if (!value) return "Unknown date";
@@ -37,7 +39,6 @@ function formatUploadDate(value?: string | null) {
   }).format(new Date(timestamp));
 }
 
-const BASE_RESUME_STORAGE_KEY = "nextstep.resumeManager.baseCvId";
 const PAGE_SIZE = 10;
 
 export function ResumeManagerPage() {
@@ -47,11 +48,13 @@ export function ResumeManagerPage() {
   const { uploadCv, isUploading } = useUploadCv();
   const { deleteCv, isDeleting } = useDeleteCv();
   const { renameCv, isRenaming } = useRenameCv();
+  const { setBaseCv, isSettingBaseCv } = useSetBaseCv();
+  const { user } = useSession();
   const [searchValue, setSearchValue] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UploadedCv | null>(null);
-  const [baseCvId, setBaseCvId] = useState(() =>
-    localStorage.getItem(BASE_RESUME_STORAGE_KEY),
+  const [optimisticBaseCvId, setOptimisticBaseCvId] = useState<string | null>(
+    null,
   );
   const [editingCvId, setEditingCvId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -95,6 +98,8 @@ export function ResumeManagerPage() {
   }, [analysisHistory]);
   const isInitialLoading = loading && cvs.length === 0;
 
+  const baseCvId = optimisticBaseCvId ?? (user?.baseCvId ? String(user.baseCvId) : null);
+
   const handleUpload = async (file?: File) => {
     if (!file) return;
 
@@ -122,14 +127,18 @@ export function ResumeManagerPage() {
     }
   };
 
-  const handleMatchJobs = (cv: UploadedCv) => {
-    sessionStorage.setItem("nextstep.jobs.resumeCvId", String(cv.cvId));
+  const handleMatchJobs = async (cv: UploadedCv) => {
+    await handleSetBase(cv);
     navigate({ to: "/jobs" });
   };
 
-  const handleSetBase = (cv: UploadedCv) => {
-    localStorage.setItem(BASE_RESUME_STORAGE_KEY, String(cv.cvId));
-    setBaseCvId(String(cv.cvId));
+  const handleSetBase = async (cv: UploadedCv) => {
+    try {
+      const nextBaseCvId = await setBaseCv(Number(cv.cvId));
+      setOptimisticBaseCvId(nextBaseCvId ? String(nextBaseCvId) : null);
+    } catch {
+      setMessage("Could not set base resume. Please try again.");
+    }
   };
 
   const startRename = (cv: UploadedCv) => {
@@ -307,7 +316,8 @@ export function ResumeManagerPage() {
                           <td className="px-5 py-4 align-top">
                             <button
                               type="button"
-                              onClick={() => handleSetBase(cv)}
+                              onClick={() => void handleSetBase(cv)}
+                              disabled={isSettingBaseCv}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                               title="Set as base resume"
                             >
@@ -380,7 +390,8 @@ export function ResumeManagerPage() {
                               </a>
                               <button
                                 type="button"
-                                onClick={() => handleMatchJobs(cv)}
+                                onClick={() => void handleMatchJobs(cv)}
+                                disabled={isSettingBaseCv}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                                 title="Match jobs"
                               >

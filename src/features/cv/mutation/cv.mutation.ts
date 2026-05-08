@@ -156,4 +156,13 @@ export const RENAME_CV = gql`
   }
 `;
 
+export const SET_BASE_CV = gql`
+  mutation SetBaseCv($cvId: Int!) {
+    setBaseCv(cvId: $cvId) {
+      userId
+      baseCvId
+    }
+  }
+`;
+
 export { CV_ANALYSIS_FIELDS };

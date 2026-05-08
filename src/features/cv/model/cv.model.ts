@@ -6,12 +6,14 @@ import {
   DELETE_CV,
   GET_PRESIGNED_URL,
   RENAME_CV,
+  SET_BASE_CV,
 } from "../mutation/cv.mutation";
 import {
   GET_CV_ANALYSIS_HISTORY,
   GET_CV_ANALYSIS_RESULT,
   USER_CVS,
 } from "../query/cv.query";
+import { ME_QUERY } from "@/features/auth/query/me.query";
 
 interface GetPresignedUrlResponse {
   getPresignedUrl: {
@@ -37,6 +39,13 @@ interface DeleteCvResponse {
 
 interface RenameCvResponse {
   renameCv: UploadedCv;
+}
+
+interface SetBaseCvResponse {
+  setBaseCv: {
+    userId: string;
+    baseCvId?: number | null;
+  };
 }
 
 export type CvSkillAnalysis = {
@@ -328,6 +337,32 @@ export function useRenameCv() {
   return {
     renameCv,
     isRenaming: state.loading,
+    error: state.error,
+  };
+}
+
+export function useSetBaseCv() {
+  const [setBaseCvMutation, state] = useMutation<SetBaseCvResponse>(
+    SET_BASE_CV,
+  );
+
+  const setBaseCv = async (cvId: number) => {
+    const { data } = await setBaseCvMutation({
+      variables: { cvId },
+      refetchQueries: [{ query: ME_QUERY }],
+      awaitRefetchQueries: true,
+    });
+
+    if (!data) {
+      throw new Error("Failed to set base CV");
+    }
+
+    return data.setBaseCv.baseCvId ?? null;
+  };
+
+  return {
+    setBaseCv,
+    isSettingBaseCv: state.loading,
     error: state.error,
   };
 }
