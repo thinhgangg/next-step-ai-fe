@@ -88,7 +88,7 @@ export function ForgotPasswordForm() {
 
               <button
                 type="submit"
-                className="w-full rounded-xl bg-cta py-4 text-sm font-bold tracking-wide text-cta-foreground transition-colors duration-150 hover:bg-cta-hover active:scale-[0.98]"
+                className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98]"
               >
                 Send reset link
               </button>

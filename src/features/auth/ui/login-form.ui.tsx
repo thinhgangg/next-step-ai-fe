@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Star, Linkedin } from "lucide-react";
 import { useState } from "react";
 import { BRAND } from "@/shared/config/brand";
+import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
@@ -35,6 +36,17 @@ const loginSchema = z.object({
 export function LoginForm() {
   const { login, error, loading } = useLogin();
   const [showPassword, setShowPassword] = useState(false);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState(() => {
+    const hasExpiredSession =
+      localStorage.getItem("nextstep.sessionExpired") === "true";
+    if (hasExpiredSession) {
+      localStorage.removeItem("nextstep.sessionExpired");
+    }
+
+    return hasExpiredSession
+      ? "Your session has expired. Please log in again."
+      : null;
+  });
 
   const form = useForm({
     defaultValues: {
@@ -54,6 +66,7 @@ export function LoginForm() {
 
     onSubmit: async ({ value }) => {
       console.log("Submitting", value);
+      setSessionExpiredMessage(null);
       await login(value);
     },
   });
@@ -204,18 +217,25 @@ export function LoginForm() {
               )}
             </form.Field>
 
+            {sessionExpiredMessage ? (
+              <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
+                {sessionExpiredMessage}
+              </div>
+            ) : null}
+
             {error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                {typeof error === "string"
-                  ? error
-                  : error?.message || "An error occurred during login"}
+                {getUserFacingErrorMessage(
+                  error,
+                  "An error occurred during login",
+                )}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-cta py-4 text-sm font-bold tracking-wide text-cta-foreground transition-colors duration-150 hover:bg-cta-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Logging in..." : "Log In"}
             </button>

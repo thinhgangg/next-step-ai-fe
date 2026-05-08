@@ -1,15 +1,11 @@
-import { CombinedGraphQLErrors } from "@apollo/client";
+import { Observable } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
-import { clearSessionTokens } from "@/shared/lib/storage";
-
-let hasHandledUnauthenticatedError = false;
-
-const AUTH_ERROR_MESSAGES = [
-  "Invalid token",
-  "No token provided",
-  "jwt expired",
-  "User not found",
-] as const;
+import {
+  clearExpiredSession,
+  refreshAccessToken,
+  RefreshTokenNetworkError,
+} from "@/features/auth/api/refresh-token";
+import { isUnauthenticatedError } from "./auth-errors";
 
 function redirectToLogin() {
   if (typeof window === "undefined") return;
@@ -18,30 +14,54 @@ function redirectToLogin() {
   window.location.replace("/login");
 }
 
-export const errorLink = onError(({ error }) => {
-  const hasUnauthenticatedError = CombinedGraphQLErrors.is(error)
-    ? error.errors.some((graphQLError) => {
-        const code = graphQLError.extensions?.code;
-        const message = graphQLError.message ?? "";
+export const errorLink = onError(({ error, operation, forward }) => {
+  const hasUnauthenticatedError = isUnauthenticatedError(error);
 
-        return (
-          code === "UNAUTHENTICATED" ||
-          code === 401 ||
-          AUTH_ERROR_MESSAGES.some((authMessage) =>
-            message.includes(authMessage),
-          )
-        );
-      })
-    : false;
+  if (hasUnauthenticatedError && !operation.getContext().didTryRefreshToken) {
+    return new Observable((observer) => {
+      let subscription: { unsubscribe: () => void } | undefined;
 
-  if (hasUnauthenticatedError && !hasHandledUnauthenticatedError) {
-    hasHandledUnauthenticatedError = true;
-    clearSessionTokens();
+      refreshAccessToken()
+        .then((accessToken) => {
+          if (!accessToken) {
+            clearExpiredSession();
+            redirectToLogin();
+            observer.error(error);
+            return;
+          }
+
+          operation.setContext(({ headers = {} }) => ({
+            headers: {
+              ...headers,
+              authorization: `Bearer ${accessToken}`,
+            },
+            didTryRefreshToken: true,
+          }));
+
+          subscription = forward(operation).subscribe(observer);
+        })
+        .catch((refreshError) => {
+          if (refreshError instanceof RefreshTokenNetworkError) {
+            observer.error(error);
+            return;
+          }
+
+          clearExpiredSession();
+          redirectToLogin();
+          observer.error(error);
+        });
+
+      return () => subscription?.unsubscribe();
+    });
+  }
+
+  if (hasUnauthenticatedError) {
+    clearExpiredSession();
     redirectToLogin();
     return;
   }
 
-  if (error && !hasUnauthenticatedError) {
+  if (error) {
     console.error("GraphQL error", error);
   }
 });

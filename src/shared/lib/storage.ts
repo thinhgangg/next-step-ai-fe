@@ -14,6 +14,10 @@ export function getAccessToken() {
   return storage.get(AUTH_STORAGE_KEYS.accessToken)
 }
 
+export function getRefreshToken() {
+  return storage.get(AUTH_STORAGE_KEYS.refreshToken)
+}
+
 export function setSessionTokens(tokens: {
   accessToken: string
   refreshToken?: string | null

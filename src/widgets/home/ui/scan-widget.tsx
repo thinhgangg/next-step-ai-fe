@@ -191,6 +191,7 @@ function StepJob({
   statusMessage,
   errorMessage,
   isAuthenticated = false,
+  isSessionLoading = false,
 }: {
   fileName?: string;
   onScan: (jobId: number) => void;
@@ -201,6 +202,7 @@ function StepJob({
   statusMessage?: string | null;
   errorMessage?: string | null;
   isAuthenticated?: boolean;
+  isSessionLoading?: boolean;
 }) {
   const [jd, setJd] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -279,7 +281,9 @@ function StepJob({
       ) : null}
 
       <p className="w-full text-sm text-muted-foreground">
-        {isAuthenticated
+        {isSessionLoading
+          ? "Checking your session before scanning."
+          : isAuthenticated
           ? "Your resume will be uploaded when you click Scan."
           : "You can try the scan flow here. Sign in is required before viewing results."}
       </p>
@@ -480,12 +484,17 @@ export function ScanWidget({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const { uploadCv, isUploading } = useUploadCv();
   const { analyzeCv, isAnalyzing } = useAnalyzeCv();
-  const { isAuthenticated } = useSession();
+  const { isAuthenticated, isSessionLoading } = useSession();
   const currentStep = isPreparingScan ? 3 : file ? 2 : 1;
 
   const handleScan = async (jobId: number) => {
     setErrorMessage(null);
     setStatusMessage(null);
+
+    if (isSessionLoading) {
+      setErrorMessage("Still checking your session. Please try again in a moment.");
+      return;
+    }
 
     if (!isAuthenticated) {
       navigate({ to: "/login" });
@@ -593,6 +602,7 @@ export function ScanWidget({
               statusMessage={statusMessage}
               errorMessage={errorMessage}
               isAuthenticated={isAuthenticated}
+              isSessionLoading={isSessionLoading}
             />
           ) : null}
         </div>

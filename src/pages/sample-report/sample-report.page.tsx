@@ -154,7 +154,7 @@ export function SampleReportPage() {
                 <span className="ml-1 text-xs text-muted-foreground">%</span>
               </div>
             </div>
-            <button className="mb-3 w-full rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground">
+            <button className="mb-3 w-full rounded-md bg-primary py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
               Upload & rescan
             </button>
             <div className="space-y-2 text-[11px]">

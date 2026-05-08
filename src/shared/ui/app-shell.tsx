@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@apollo/client/react";
 import {
   FileText,
   LogOut,
@@ -19,7 +18,6 @@ import {
 import { BRAND } from "@/shared/config/brand";
 import { storage } from "@/shared/lib/storage";
 import { useSession } from "@/features/auth/session/session.model";
-import { ME_QUERY } from "@/features/auth/query/me.query";
 
 type NavItem = {
   id: string;
@@ -73,24 +71,13 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
     return storage.get(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true";
   });
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { logout } = useSession();
-  const { data: meData } = useQuery<{
-    me: {
-      userId: string;
-      name: string;
-      email: string;
-      avatar?: string | null;
-    } | null;
-  }>(ME_QUERY, {
-    fetchPolicy: "cache-and-network",
-  });
+  const { logout, user, isSessionLoading } = useSession();
   const location = useLocation();
   const navigate = useNavigate();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const currentUser = meData?.me;
-  const displayName = currentUser?.name?.trim() || "User";
-  const displayEmail = currentUser?.email?.trim() || "";
+  const displayName = user?.name?.trim() || "";
+  const displayEmail = user?.email?.trim() || "";
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
 
   useEffect(() => {
@@ -152,7 +139,7 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
           <button
             className={`${
               isCollapsed ? collapsedBtnClass : expandedBtnClass
-            } bg-cta text-cta-foreground font-semibold bg-primary hover:bg-primary/90 transition-colors`}
+            } bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors`}
             title={isCollapsed ? "New Scan" : undefined}
           >
             <Plus className="w-5 h-5 flex-shrink-0" />
@@ -216,7 +203,9 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0">
           <h1 className="text-2xl font-bold text-foreground">
-            Welcome, {displayName}!
+            {isSessionLoading || !displayName
+              ? "Welcome"
+              : `Welcome, ${displayName}!`}
           </h1>
           <div className="flex items-center gap-3">
             <button className="bg-accent text-accent-foreground border border-primary/20 rounded-full px-4 py-1.5 text-sm font-semibold hover:bg-background transition-colors">

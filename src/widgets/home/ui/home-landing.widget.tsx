@@ -124,7 +124,7 @@ const sectionNavItems: SectionNavItem[] = [
 
 export function HomeLandingWidget() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useSession();
+  const { isAuthenticated, isSessionLoading } = useSession();
   const [activeSection, setActiveSection] =
     useState<SectionNavItem["id"]>("how-it-works");
   const [isScanning, setIsScanning] = useState(false);
@@ -207,10 +207,19 @@ export function HomeLandingWidget() {
           </div>
 
           <div className="flex items-center gap-3">
-            {isAuthenticated ? (
+            {isSessionLoading ? (
+              <button
+                type="button"
+                aria-disabled="true"
+                onClick={(event) => event.preventDefault()}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Go to Dashboard
+              </button>
+            ) : isAuthenticated ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-foreground"
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <span>Go to Dashboard</span>
               </Link>
@@ -224,7 +233,7 @@ export function HomeLandingWidget() {
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-foreground"
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
                 >
                   <span>Try for Free</span>
                 </Link>
@@ -248,7 +257,7 @@ export function HomeLandingWidget() {
           <div className="flex items-center gap-4">
             <button
               onClick={handleAnalyzeCV}
-              className="rounded-lg bg-cta px-7 py-3.5 text-left text-base font-semibold text-cta-foreground transition-colors hover:bg-cta-hover sm:text-lg"
+              className="rounded-lg bg-primary px-7 py-3.5 text-left text-base font-semibold text-primary-foreground transition-all hover:bg-primary/90 sm:text-lg"
             >
               Analyze My CV - It&apos;s Free
             </button>
@@ -496,7 +505,7 @@ export function HomeLandingWidget() {
                   Prep Insights
                 </li>
               </ul>
-              <button className="rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-opacity hover:opacity-90">
+              <button className="rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
                 Go Pro
               </button>
             </article>
@@ -541,7 +550,7 @@ export function HomeLandingWidget() {
         </p>
         <button
           onClick={handleAnalyzeCV}
-          className="rounded-lg bg-cta px-10 py-4 text-xl font-bold text-cta-foreground shadow-lg transition-all hover:bg-cta-hover hover:shadow-xl"
+          className="rounded-lg bg-primary px-10 py-4 text-xl font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
         >
           Analyze My Resume Now
         </button>

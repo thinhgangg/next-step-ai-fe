@@ -10,6 +10,7 @@ import {
   Search,
 } from "lucide-react";
 import { useCvAnalysisHistory } from "@/features/cv/model/cv.model";
+import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 
 export type ScanHistoryItem = {
   id: string;
@@ -286,7 +287,9 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
               <h3 className="mb-1 text-base font-bold text-foreground">
                 Unable to load scan history
               </h3>
-              <p className="text-sm text-muted-foreground">{error.message}</p>
+              <p className="text-sm text-muted-foreground">
+                {getUserFacingErrorMessage(error)}
+              </p>
             </div>
           ) : !hasHistory ? (
             <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">

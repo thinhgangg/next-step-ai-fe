@@ -26,6 +26,7 @@ import type {
   ExperienceFilterOption,
 } from "@/features/jobs/model/jobs.model";
 import { FilterSelect, type SelectOption } from "@/shared/ui/filter-select";
+import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 
 type SearchMode = "keyword" | "resume";
 type DropdownName =
@@ -668,7 +669,7 @@ export function JobsBrowser({
         ) : error ? (
           <EmptyResults
             title="Unable to load jobs"
-            description={error.message}
+            description={getUserFacingErrorMessage(error)}
             actionLabel="Try again"
             onAction={handleKeywordSearch}
           />
@@ -743,7 +744,7 @@ export function JobsBrowser({
                         onClick={() => setCurrentPage(item)}
                         className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2.5 ${
                           currentPage === item
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
                             : "border border-transparent text-foreground hover:border-border"
                         }`}
                       >

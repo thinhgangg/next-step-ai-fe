@@ -22,6 +22,7 @@ import {
   useUserCvs,
   type UploadedCv,
 } from "@/features/cv/model/cv.model";
+import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 
 function formatUploadDate(value?: string | null) {
   if (!value) return "Unknown date";
@@ -265,7 +266,7 @@ export function ResumeManagerPage() {
                 Unable to load resumes
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                {error.message}
+                {getUserFacingErrorMessage(error)}
               </p>
             </div>
           ) : filteredCvs.length === 0 ? (

@@ -5,6 +5,7 @@ import { Link } from "@tanstack/react-router";
 import { Eye, EyeOff, Star, Linkedin } from "lucide-react";
 import { useState } from "react";
 import { BRAND } from "@/shared/config/brand";
+import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 
 const GoogleIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24">
@@ -224,16 +225,17 @@ export function RegisterForm() {
 
             {error && (
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                {typeof error === "string"
-                  ? error
-                  : error.message || "Registration failed. Please try again."}
+                {getUserFacingErrorMessage(
+                  error,
+                  "Registration failed. Please try again.",
+                )}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-cta py-4 text-sm font-bold tracking-wide text-cta-foreground transition-colors duration-150 hover:bg-cta-hover active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
