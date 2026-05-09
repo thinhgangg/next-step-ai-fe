@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@apollo/client/react";
+import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { useState } from "react";
 import {
   ANALYZE_CV,
@@ -9,6 +9,7 @@ import {
   SET_BASE_CV,
 } from "../mutation/cv.mutation";
 import {
+  GET_CV_FILE,
   GET_CV_ANALYSIS_HISTORY,
   GET_CV_ANALYSIS_RESULT,
   USER_CVS,
@@ -173,6 +174,16 @@ interface UserCvsResponse {
   userCvs: UploadedCv[];
 }
 
+export type CvFile = {
+  fileName: string;
+  contentType: string;
+  base64: string;
+};
+
+interface GetCvFileResponse {
+  getCvFile: CvFile;
+}
+
 export type CvAnalysisHistoryItem = {
   analysisId: number;
   jobId: number;
@@ -294,6 +305,30 @@ export function useUserCvs() {
     loading: query.loading,
     error: query.error,
     refetch: query.refetch,
+  };
+}
+
+export function useCvFile() {
+  const [getCvFileQuery, state] = useLazyQuery<GetCvFileResponse>(GET_CV_FILE, {
+    fetchPolicy: "network-only",
+  });
+
+  const getCvFile = async (cvId: number) => {
+    const { data } = await getCvFileQuery({
+      variables: { cvId },
+    });
+
+    if (!data?.getCvFile) {
+      throw new Error("Failed to get CV file");
+    }
+
+    return data.getCvFile;
+  };
+
+  return {
+    getCvFile,
+    isGettingCvFile: state.loading,
+    error: state.error,
   };
 }
 

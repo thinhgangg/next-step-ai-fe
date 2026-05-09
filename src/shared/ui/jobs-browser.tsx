@@ -89,13 +89,13 @@ const MODE_OPTIONS: Array<SelectOption<SearchMode>> = [
   {
     value: "keyword",
     label: "Search by keyword",
-    description: "What job are you looking for? We’ll find matches.",
+    description: "Find roles by title, skill, or company.",
     icon: <Search className="h-4 w-4" />,
   },
   {
     value: "resume",
     label: "Use my resume",
-    description: "AI will recommend jobs based on a CV you've uploaded.",
+    description: "Rank roles by CV fit.",
     icon: <FileText className="h-4 w-4" />,
   },
 ];
@@ -662,7 +662,7 @@ export function JobsBrowser({
         !isLoadingCvs ? (
           <EmptyResults
             title="No CVs uploaded yet"
-            description="Upload a CV from the dashboard, then choose it here to rank jobs by your resume."
+            description="Upload a CV to rank jobs by fit."
             actionLabel="Upload CV"
             onAction={handleCreateScan}
           />
@@ -670,7 +670,7 @@ export function JobsBrowser({
           effectiveSelectedCvId === null ? (
           <EmptyResults
             title="Choose a CV"
-            description="Select one of your uploaded CVs above to find jobs ranked by resume fit."
+            description="Pick a CV to rank jobs by fit."
           />
         ) : loading ? (
           <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
@@ -692,7 +692,7 @@ export function JobsBrowser({
             description={
               effectiveSearchMode === "keyword"
                 ? "Try a different keyword or location to see more jobs."
-                : "No live jobs are available for the current recommendation view yet."
+                : "No matches for this CV yet."
             }
             actionLabel={
               effectiveSearchMode === "keyword" ? "Clear search" : undefined

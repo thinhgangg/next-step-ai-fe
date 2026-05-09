@@ -21,6 +21,16 @@ export const USER_CVS = gql`
   }
 `;
 
+export const GET_CV_FILE = gql`
+  query GetCvFile($cvId: Int!) {
+    getCvFile(cvId: $cvId) {
+      fileName
+      contentType
+      base64
+    }
+  }
+`;
+
 export const GET_CV_ANALYSIS_HISTORY = gql`
   query GetCvAnalysisHistory($limit: Int) {
     getCvAnalysisHistory(limit: $limit) {

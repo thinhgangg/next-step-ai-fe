@@ -61,7 +61,7 @@ export function UploadCvWidget({
   onUploadError,
   disabled = false,
   title = "Step 1: Upload a resume",
-  placeholder = "Copy and paste resume here.",
+  placeholder = "Paste resume text",
   accept = ".pdf,.doc,.docx,.txt",
   uploadIdleLabel = "Drag & Drop or Upload Your Resume",
   uploadLoadingLabel = "Processing...",

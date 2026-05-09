@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BriefcaseBusiness,
-  CheckCircle2,
   CloudUpload,
   Eye,
   Loader2,
@@ -14,8 +13,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { AppShell } from "@/shared/ui/app-shell";
+import { useToast } from "@/shared/ui/toast";
 import {
   useCvAnalysisHistory,
+  useCvFile,
   useDeleteCv,
   useRenameCv,
   useSetBaseCv,
@@ -41,17 +42,39 @@ function formatUploadDate(value?: string | null) {
 
 const PAGE_SIZE = 10;
 
+function base64ToBlob(base64: string, contentType: string) {
+  const byteCharacters = atob(base64);
+  const byteArrays: ArrayBuffer[] = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += 1024) {
+    const slice = byteCharacters.slice(offset, offset + 1024);
+    const byteNumbers = new Array(slice.length);
+
+    for (let index = 0; index < slice.length; index += 1) {
+      byteNumbers[index] = slice.charCodeAt(index);
+    }
+
+    const bytes = new Uint8Array(byteNumbers);
+    byteArrays.push(bytes.buffer.slice(0));
+  }
+
+  return new Blob(byteArrays, {
+    type: contentType || "application/octet-stream",
+  });
+}
+
 export function ResumeManagerPage() {
   const navigate = useNavigate();
   const { cvs, loading, error, refetch } = useUserCvs();
   const { items: analysisHistory } = useCvAnalysisHistory();
   const { uploadCv, isUploading } = useUploadCv();
+  const { getCvFile, isGettingCvFile } = useCvFile();
   const { deleteCv, isDeleting } = useDeleteCv();
   const { renameCv, isRenaming } = useRenameCv();
   const { setBaseCv, isSettingBaseCv } = useSetBaseCv();
   const { user } = useSession();
+  const { showToast } = useToast();
   const [searchValue, setSearchValue] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UploadedCv | null>(null);
   const [optimisticBaseCvId, setOptimisticBaseCvId] = useState<string | null>(
     null,
@@ -104,12 +127,16 @@ export function ResumeManagerPage() {
     if (!file) return;
 
     try {
-      setMessage(null);
       await uploadCv(file);
-      setMessage(`${file.name} uploaded successfully.`);
+      showToast("Upload complete", {
+        description: "Your resume is ready to use.",
+      });
       await refetch();
     } catch {
-      setMessage("Upload failed. Please try again.");
+      showToast("Upload failed", {
+        description: "Please try again with another file.",
+        variant: "error",
+      });
     }
   };
 
@@ -119,11 +146,16 @@ export function ResumeManagerPage() {
     try {
       const deleted = await deleteCv(Number(deleteTarget.cvId));
       if (deleted) {
-        setMessage(`${deleteTarget.fileName} deleted.`);
+        showToast("Resume deleted", {
+          description: "It has been removed from your library.",
+        });
       }
       setDeleteTarget(null);
     } catch {
-      setMessage("Delete failed. Please try again.");
+      showToast("Delete failed", {
+        description: "Please try again in a moment.",
+        variant: "error",
+      });
     }
   };
 
@@ -132,12 +164,44 @@ export function ResumeManagerPage() {
     navigate({ to: "/jobs" });
   };
 
+  const handleViewCv = async (cv: UploadedCv) => {
+    const viewWindow = window.open("about:blank", "_blank");
+    if (viewWindow) {
+      viewWindow.opener = null;
+    }
+
+    try {
+      const file = await getCvFile(Number(cv.cvId));
+      const blob = base64ToBlob(file.base64, file.contentType);
+      const viewUrl = URL.createObjectURL(blob);
+
+      if (viewWindow) {
+        viewWindow.document.title = file.fileName;
+        viewWindow.location.href = viewUrl;
+      } else {
+        window.location.href = viewUrl;
+      }
+
+      window.setTimeout(() => URL.revokeObjectURL(viewUrl), 60_000);
+    } catch {
+      viewWindow?.close();
+      showToast("Could not open resume", {
+        description: "Please try again in a moment.",
+        variant: "error",
+      });
+    }
+  };
+
   const handleSetBase = async (cv: UploadedCv) => {
     try {
       const nextBaseCvId = await setBaseCv(Number(cv.cvId));
       setOptimisticBaseCvId(nextBaseCvId ? String(nextBaseCvId) : null);
+      showToast("Base resume updated");
     } catch {
-      setMessage("Could not set base resume. Please try again.");
+      showToast("Could not update base resume", {
+        description: "Please try again in a moment.",
+        variant: "error",
+      });
     }
   };
 
@@ -160,10 +224,15 @@ export function ResumeManagerPage() {
 
     try {
       await renameCv(Number(cv.cvId), nextName);
-      setMessage(`${cv.fileName} renamed.`);
+      showToast("Resume renamed", {
+        description: "Your change has been saved.",
+      });
       cancelRename();
     } catch {
-      setMessage("Rename failed. Please try again.");
+      showToast("Rename failed", {
+        description: "Please try again in a moment.",
+        variant: "error",
+      });
     }
   };
 
@@ -177,7 +246,7 @@ export function ResumeManagerPage() {
                 Resume Manager
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Manage uploaded CVs used for resume scans and job matching.
+                Manage CVs for scans and job matching.
               </p>
             </div>
 
@@ -252,13 +321,6 @@ export function ResumeManagerPage() {
               </button>
             </div>
           </div>
-
-          {message ? (
-            <div className="mt-4 flex items-center gap-2 text-sm text-primary">
-              <CheckCircle2 className="h-4 w-4" />
-              {message}
-            </div>
-          ) : null}
         </section>
 
         <section className="bg-background p-5">
@@ -287,7 +349,7 @@ export function ResumeManagerPage() {
                 No resumes found
               </h3>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Upload a CV to use it in scans and resume-based job matching.
+                Upload a CV to start matching jobs.
               </p>
             </div>
           ) : (
@@ -379,15 +441,15 @@ export function ResumeManagerPage() {
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex justify-end gap-2">
-                              <a
-                                href={cv.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => void handleViewCv(cv)}
+                                disabled={isGettingCvFile}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                                 title="Open"
                               >
                                 <Eye className="h-4 w-4" />
-                              </a>
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => void handleMatchJobs(cv)}
@@ -460,7 +522,7 @@ export function ResumeManagerPage() {
               Delete resume?
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This removes {deleteTarget.fileName} from your resume library.
+              This removes {deleteTarget.fileName} from your library.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button

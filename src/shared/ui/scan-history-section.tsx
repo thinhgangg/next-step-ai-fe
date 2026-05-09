@@ -177,7 +177,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
       <section className="border-b border-border bg-muted p-5 pb-4">
         <h2 className="text-[22px] font-bold text-foreground">Scan History</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Review your past resume scans and revisit job-fit insights anytime.
+          Review past scans and match scores.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -323,8 +323,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                 No scan history yet
               </h3>
               <p className="mx-auto mb-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                Complete your first scan to start tracking past results, compare
-                improvements over time, and quickly revisit your reports.
+                Run a scan to start tracking match results.
               </p>
               <button
                 type="button"

@@ -13,7 +13,7 @@ export function JobsPage() {
       <JobsBrowser
         hasScan={hasScan}
         title="Find Jobs"
-        description="Browse live jobs from the backend crawler, or switch to resume mode after scanning your CV."
+        description="Search jobs, filter results, and rank matches by CV."
         onCreateScan={() => navigate({ to: "/dashboard" })}
       />
     </AppShell>

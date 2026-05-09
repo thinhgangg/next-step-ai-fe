@@ -64,9 +64,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     setSelectedResumeName(file.name);
     setResumeText("");
     setUploadError(null);
-    setUploadMessage(
-      "Resume selected successfully. Choose a job match below to continue.",
-    );
+    setUploadMessage("Resume selected.");
     e.target.value = "";
   };
 
@@ -89,7 +87,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       const uploadedCv = await uploadCv(fileToUpload);
 
       setSelectedResumeName(uploadedCv.fileName);
-      setUploadMessage("Resume uploaded. Running AI analysis...");
+      setUploadMessage("Analyzing match...");
 
       const analysis = await analyzeCv(Number(uploadedCv.cvId), selectedJobId);
       if (analysis.analysisResultId) {
@@ -110,8 +108,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       <section className="border-b border-border bg-muted p-5 pb-4">
         <h2 className="text-[22px] font-bold text-foreground">New Scan</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload or paste your resume, then choose the job you want the AI
-          report to target.
+          Compare a resume with a target role.
         </p>
       </section>
 
@@ -120,7 +117,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
           <div className="flex flex-col overflow-hidden rounded-xl border border-border">
             <div className="flex items-center justify-between border-b border-border bg-card p-4">
               <label className="text-sm font-semibold text-foreground">
-                Step 1: Upload a resume
+                Resume
               </label>
               <a
                 href="#"
@@ -139,7 +136,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     clearSelectedResume();
                   }
                 }}
-                placeholder="Copy and paste resume here."
+                placeholder="Paste resume text"
                 className="min-h-[180px] w-full flex-1 resize-none bg-transparent text-sm text-muted-foreground outline-none placeholder:text-muted-foreground"
               />
               <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-card py-2.5 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary">
@@ -148,7 +145,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                 ) : (
                   <CloudUpload className="h-4 w-4" />
                 )}
-                {isBusy ? "Processing..." : "Drag & Drop or Upload Your Resume"}{" "}
+                {isBusy ? "Processing..." : "Upload resume"}{" "}
                 <input
                   type="file"
                   className="hidden"
@@ -195,7 +192,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
           <div className="flex flex-col overflow-hidden rounded-xl border border-border">
             <div className="flex items-center border-b border-border bg-card p-4">
               <label className="text-sm font-semibold text-foreground">
-                Step 2: Paste a job description and pick a matched job
+                Target role
               </label>
             </div>
             <div className="flex flex-1 flex-col gap-4 bg-background/50 p-4">
@@ -205,7 +202,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   setJdText(e.target.value);
                   setSelectedJobId(null);
                 }}
-                placeholder="Paste the job description or keywords here to search matching jobs from the backend."
+                placeholder="Paste a job description or search keywords"
                 className="min-h-[140px] w-full resize-none bg-transparent text-sm text-muted-foreground outline-none placeholder:text-muted-foreground"
               />
 
@@ -253,8 +250,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     })
                   ) : (
                     <p className="px-3 py-4 text-sm text-muted-foreground">
-                      No jobs found yet. Paste more specific keywords or use a
-                      shorter JD excerpt.
+                      No matches yet. Try a shorter keyword.
                     </p>
                   )}
                 </div>
@@ -269,8 +265,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Choose one job above so the AI can compare your resume against
-                  a real backend record.
+                  Choose a role to run the scan.
                 </p>
               )}
             </div>

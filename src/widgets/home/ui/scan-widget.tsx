@@ -560,8 +560,7 @@ export function ScanWidget({
             Precision Job Matching in Minutes
           </h2>
           <p className="text-muted-foreground text-center">
-            Our streamlined three-step process ensures your resume speaks the
-            language of recruiters and ATS systems.
+            Upload a resume, choose a role, and review your match.
           </p>
         </div>
 
