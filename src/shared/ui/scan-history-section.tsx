@@ -2,13 +2,19 @@ import { useMemo, useState } from "react";
 import {
   ArrowRight,
   ArrowUpDown,
+  BarChart3,
   Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock3,
+  FileText,
   Loader2,
   Search,
+  Sparkles,
+  Target,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCvAnalysisHistory } from "@/features/cv/model/cv.model";
 import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
@@ -59,7 +65,7 @@ function ScoreRing({ score }: { score: number }) {
             : "Very low";
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-center gap-3">
       <div
         className="relative h-11 w-11 shrink-0 rounded-full"
         title={`${clamped} - ${label}`}
@@ -79,6 +85,51 @@ function parseScanDate(scanDate: string) {
   const parsed = new Date(scanDate).getTime();
   if (Number.isNaN(parsed)) return 0;
   return parsed;
+}
+
+function PageCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-xl border border-border bg-card shadow-sm ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  note,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  note: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <PageCard className="p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+            {value}
+          </p>
+        </div>
+        <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+      <p className="line-clamp-2 text-sm text-muted-foreground">{note}</p>
+    </PageCard>
+  );
 }
 
 export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
@@ -122,6 +173,14 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
   );
   const hasHistory = items.length > 0;
   const isInitialLoading = loading && historyItems.length === 0;
+  const bestScore = items.reduce((best, item) => Math.max(best, item.score), 0);
+  const latestItem = items.reduce<ScanHistoryItem | null>((latest, item) => {
+    if (!latest) return item;
+    return item.scanTimestamp > latest.scanTimestamp ? item : latest;
+  }, null);
+  const averageScore = items.length
+    ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length)
+    : 0;
 
   const filteredAndSortedItems = useMemo(() => {
     const normalizedQuery = searchValue.trim().toLowerCase();
@@ -173,26 +232,72 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
-      <section className="border-b border-border bg-muted p-5 pb-4">
-        <h2 className="text-[22px] font-bold text-foreground">Scan History</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review past scans and match scores.
+    <div className="mx-auto max-w-[1480px] space-y-5">
+      <section>
+        <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+          <Sparkles className="h-3.5 w-3.5" />
+          Analysis timeline
         </p>
+        <h1 className="text-3xl font-black tracking-tight text-foreground">
+          Scan History
+        </h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Review past CV-to-job scans, compare match scores, and reopen reports
+          when you need the full recommendation.
+        </p>
+      </section>
 
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-          <div className="relative w-full max-w-[260px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={searchValue}
-              onChange={(e) => {
-                setSearchValue(e.target.value);
-                setCurrentPage(1);
-              }}
-              placeholder="Search"
-              className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground"
-            />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Total scans"
+          value={items.length}
+          note="Completed reports currently available in history."
+          icon={FileText}
+        />
+        <MetricCard
+          label="Best match"
+          value={bestScore ? `${bestScore}%` : "--"}
+          note="Highest match score in your scan history."
+          icon={Target}
+        />
+        <MetricCard
+          label="Average match"
+          value={averageScore ? `${averageScore}%` : "--"}
+          note="Average score across loaded scan history."
+          icon={BarChart3}
+        />
+        <MetricCard
+          label="Latest scan"
+          value={latestItem ? latestItem.scanDate : "--"}
+          note={latestItem?.jobTitle ?? "Run a scan to start tracking history."}
+          icon={Clock3}
+        />
+      </section>
+
+      <PageCard className="p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-foreground">
+              Analysis reports
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Click any row to open the full match report.
+            </p>
           </div>
+
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="relative min-w-0 flex-1 sm:w-[280px] sm:flex-none">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Search"
+                className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
+              />
+            </div>
 
           <div className="relative">
             <button
@@ -278,10 +383,9 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
               </div>
             )}
           </div>
+          </div>
         </div>
-      </section>
 
-      <section className="bg-background p-5">
         <div className="min-h-[320px] space-y-4">
           {isInitialLoading ? (
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
@@ -339,10 +443,12 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[760px] table-fixed">
                     <thead>
-                      <tr className="border-b border-border bg-card text-left text-sm font-semibold text-foreground">
-                        <th className="w-[92px] px-5 py-3">Score</th>
-                        <th className="w-[280px] px-4 py-3">CV</th>
-                        <th className="px-4 py-3">Job title</th>
+                      <tr className="border-b border-border bg-background/50 text-left text-sm font-semibold text-foreground">
+                        <th className="w-[140px] px-5 py-3 text-center">
+                          Match score
+                        </th>
+                        <th className="w-[280px] px-4 py-3">Resume</th>
+                        <th className="px-4 py-3">Target job</th>
                         <th className="w-[160px] px-4 py-3">Scan date</th>
                       </tr>
                     </thead>
@@ -449,7 +555,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
             </>
           )}
         </div>
-      </section>
+      </PageCard>
 
       {isSortMenuOpen && (
         <button

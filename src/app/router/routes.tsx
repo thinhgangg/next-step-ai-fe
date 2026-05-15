@@ -11,6 +11,8 @@ import { ResumeManagerPage } from "@/pages/resume-manager/resume-manager.page";
 import { JobsPage } from "@/pages/jobs/jobs.page";
 import { ScanHistoryPage } from "@/pages/scan-history/scan-history.page";
 import { MatchReportPage } from "@/pages/match-report/match-report.page";
+import { ProfilePage } from "@/pages/profile/profile.page";
+import { SettingsPage } from "@/pages/settings/settings.page";
 import { SampleReportPage } from "@/pages/sample-report/sample-report.page";
 import { GoogleCallbackPage } from "@/pages/google-callback/google-callback.page";
 import { Protected } from "./protected";
@@ -111,6 +113,26 @@ export const sampleReportRoute = createRoute({
   component: () => (
     <Protected>
       <SampleReportPage />
+    </Protected>
+  ),
+});
+
+export const profileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/profile",
+  component: () => (
+    <Protected>
+      <ProfilePage />
+    </Protected>
+  ),
+});
+
+export const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/settings",
+  component: () => (
+    <Protected>
+      <SettingsPage />
     </Protected>
   ),
 });

@@ -2,18 +2,31 @@ import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   BookOpen,
   BriefcaseBusiness,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock3,
   ExternalLink,
-  FileText,
   Gauge,
   GraduationCap,
+  Layers3,
+  Lightbulb,
   Loader2,
   MapPin,
+  Plus,
+  Rocket,
+  Save,
+  ShieldCheck,
   Sparkles,
   Target,
+  TrendingUp,
+  UploadCloud,
+  Zap,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/shared/ui/app-shell";
 import { getLatestAnalysisId } from "@/shared/config/latest-analysis";
 import {
@@ -21,804 +34,883 @@ import {
   useCvAnalysisResult,
 } from "@/features/cv/model/cv.model";
 
-type Status = "ok" | "warn" | "fail";
-type Tab = "overview" | "resume" | "job" | "gaps" | "roadmap" | "response";
-
-const tabs: Array<{ id: Tab; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "resume", label: "CV Profile" },
-  { id: "job", label: "Job Context" },
-  { id: "gaps", label: "Gaps" },
-  { id: "roadmap", label: "Roadmap" },
-  { id: "response", label: "Full Response" },
-];
+type Tone = "emerald" | "amber" | "rose" | "blue" | "violet" | "neutral";
 
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value || 0)));
 }
 
-function asPercent(value: number) {
+function percent(value: number) {
   return `${Math.round((value || 0) * 100)}%`;
 }
 
-function scoreStatus(score: number): Status {
-  if (score >= 70) return "ok";
-  if (score >= 45) return "warn";
-  return "fail";
+function scoreTone(score: number): Tone {
+  if (score >= 75) return "emerald";
+  if (score >= 45) return "amber";
+  return "rose";
 }
 
-function statusClasses(status: Status) {
-  if (status === "ok") return "border-success/30 bg-success/10 text-success";
-  if (status === "warn") return "border-amber-300 bg-amber-50 text-amber-700";
-  return "border-destructive/30 bg-destructive/10 text-destructive";
+function verdictLabel(value?: string | null) {
+  if (!value) return "AI Analysis";
+  return value
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
-function barColor(score: number) {
-  if (score >= 70) return "bg-success";
-  if (score >= 45) return "bg-amber-500";
-  return "bg-destructive";
+function toneClasses(tone: Tone) {
+  const map: Record<Tone, string> = {
+    emerald:
+      "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    amber:
+      "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    rose: "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+    blue: "border-blue-500/25 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+    violet:
+      "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    neutral: "border-white/10 bg-white/5 text-foreground",
+  };
+
+  return map[tone];
+}
+
+function scoreGradient(tone: Tone) {
+  if (tone === "emerald") return "#10b981";
+  if (tone === "amber") return "#f59e0b";
+  if (tone === "rose") return "#f43f5e";
+  return "#3b82f6";
+}
+
+function metricBarClass(score: number) {
+  if (score >= 75) return "from-emerald-400 to-teal-500";
+  if (score >= 45) return "from-amber-400 to-orange-500";
+  return "from-rose-400 to-red-500";
+}
+
+function difficultyFromPriority(priority: number) {
+  if (priority >= 5) return "Advanced";
+  if (priority >= 4) return "Focused";
+  if (priority >= 3) return "Moderate";
+  return "Light";
+}
+
+function GlassCard({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-2xl border border-white/10 bg-card/80 shadow-xl shadow-primary/5 backdrop-blur transition duration-300 hover:border-primary/20 hover:shadow-primary/10 ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  description,
+  icon: Icon,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        {eyebrow ? (
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            {eyebrow}
+          </p>
+        ) : null}
+        <h2 className="flex items-center gap-2 text-2xl font-bold text-foreground">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10">
+            <Icon className="h-4 w-4 text-primary" />
+          </span>
+          {title}
+        </h2>
+        {description ? (
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-border bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+    <div className="rounded-2xl border border-dashed border-border bg-muted/40 px-5 py-7 text-center text-sm text-muted-foreground">
       {text}
     </div>
   );
 }
 
-function Panel({
-  title,
-  icon: Icon,
-  action,
-  children,
-}: {
-  title: string;
-  icon?: typeof Gauge;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-muted/50 px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {Icon ? <Icon className="h-4 w-4 shrink-0 text-primary" /> : null}
-          <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
-        </div>
-        {action}
-      </div>
-      <div className="p-4">{children}</div>
-    </section>
-  );
-}
-
-function Metric({
+function StatCard({
   label,
   value,
   note,
+  icon: Icon,
+  tone,
 }: {
   label: string;
   value: string | number;
-  note?: string;
+  note: string;
+  icon: LucideIcon;
+  tone: Tone;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background px-4 py-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-bold text-foreground">{value}</p>
-      {note ? <p className="mt-1 text-xs text-muted-foreground">{note}</p> : null}
+    <div className="rounded-2xl border border-white/10 bg-white/55 p-4 shadow-sm backdrop-blur dark:bg-white/5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className={`rounded-xl border p-2 ${toneClasses(tone)}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <p className="text-2xl font-bold text-foreground">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{note}</p>
     </div>
   );
 }
 
-function ProgressMetric({
+function ScoreRing({
+  score,
+  verdict,
+}: {
+  score: number;
+  verdict?: string | null;
+}) {
+  const clamped = clampScore(score);
+  const tone = scoreTone(clamped);
+  const color = scoreGradient(tone);
+
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+      <div className="relative h-40 w-40 shrink-0">
+        <div
+          className="h-40 w-40 rounded-full shadow-2xl shadow-primary/20"
+          style={{
+            background: `conic-gradient(${color} ${clamped}%, rgba(148, 163, 184, 0.22) 0)`,
+          }}
+        />
+        <div className="absolute inset-4 flex flex-col items-center justify-center rounded-full border border-white/20 bg-card/90 backdrop-blur">
+          <span className="text-5xl font-black tracking-tight text-foreground">
+            {clamped}
+          </span>
+          <span className="text-xs font-semibold uppercase text-muted-foreground">
+            Match
+          </span>
+        </div>
+      </div>
+
+      <div>
+        <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${toneClasses(tone)}`}>
+          {verdictLabel(verdict)}
+        </span>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          AI-powered fit score based on skills, ATS readiness, experience,
+          location and role alignment.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function AdviceCard({
+  title,
+  items,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  items: string[];
+  icon: LucideIcon;
+  tone: Tone;
+}) {
+  return (
+    <GlassCard className="p-5">
+      <div className="mb-4 flex items-center gap-3">
+        <span className={`rounded-2xl border p-3 ${toneClasses(tone)}`}>
+          <Icon className="h-5 w-5" />
+        </span>
+        <h3 className="text-lg font-bold text-foreground">{title}</h3>
+      </div>
+
+      {items.length ? (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div
+              key={item}
+              className="rounded-2xl border border-white/10 bg-white/50 p-3 text-sm leading-6 text-foreground transition hover:-translate-y-0.5 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No AI note returned.</p>
+      )}
+    </GlassCard>
+  );
+}
+
+function SkillPill({
+  skill,
+  tone,
+  icon: Icon,
+}: {
+  skill: string;
+  tone: Tone;
+  icon?: LucideIcon;
+}) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${toneClasses(tone)}`}>
+      {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+      {skill}
+    </span>
+  );
+}
+
+function SkillStrengtheningCard({
+  skill,
+}: {
+  skill: CvAnalysisResult["gapAnalysis"]["skillGap"]["weak"][number];
+}) {
+  const priorityTone: Tone = skill.gap >= 0.25 ? "amber" : "blue";
+  const priorityLabel = skill.gap >= 0.25 ? "Stronger proof" : "Clearer evidence";
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/50 px-4 py-3 dark:bg-white/5">
+      <div className="min-w-0">
+        <h4 className="truncate font-bold text-foreground">{skill.skill}</h4>
+        <p className="text-xs text-muted-foreground">Add stronger CV evidence.</p>
+      </div>
+      <span className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses(priorityTone)}`}>
+        {priorityLabel}
+      </span>
+    </div>
+  );
+}
+
+function StrengtheningTip() {
+  return (
+    <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-sm leading-6 text-blue-800 dark:text-blue-200">
+      Add project proof, metrics, tools used, and ownership for these skills.
+    </div>
+  );
+}
+
+function ScoreMetric({
   label,
   score,
-  note,
+  icon: Icon,
 }: {
   label: string;
   score: number;
-  note?: string;
+  icon: LucideIcon;
 }) {
   const clamped = clampScore(score);
 
   return (
-    <div className="rounded-lg border border-border bg-background px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${statusClasses(
-            scoreStatus(clamped),
-          )}`}
-        >
+    <div className="rounded-2xl border border-white/10 bg-white/50 p-4 transition hover:-translate-y-1 hover:shadow-lg dark:bg-white/5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Icon className="h-4 w-4 text-primary" />
+          {label}
+        </span>
+        <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${toneClasses(scoreTone(clamped))}`}>
           {clamped}
         </span>
       </div>
-      <div className="mt-3 h-2 rounded-full bg-border">
+      <div className="h-2.5 overflow-hidden rounded-full bg-border">
         <div
-          className={`h-2 rounded-full ${barColor(clamped)}`}
+          className={`h-full rounded-full bg-gradient-to-r ${metricBarClass(clamped)} transition-all duration-700`}
           style={{ width: `${clamped}%` }}
         />
       </div>
-      {note ? <p className="mt-2 text-xs text-muted-foreground">{note}</p> : null}
+      <p className="mt-3 text-xs text-muted-foreground">
+        {clamped < 45 ? "Priority improvement area" : clamped < 75 ? "Moderate signal" : "Strong signal"}
+      </p>
     </div>
   );
 }
 
-function DataRow({
-  label,
-  value,
+function GapCard({
+  gap,
+  index,
 }: {
-  label: string;
-  value: ReactNode;
+  gap: CvAnalysisResult["gapAnalysis"]["skillGap"]["missing"][number];
+  index: number;
 }) {
-  return (
-    <div className="grid gap-1 border-t border-border px-4 py-3 first:border-t-0 sm:grid-cols-[190px_1fr] sm:gap-4">
-      <p className="text-xs font-semibold uppercase text-muted-foreground">{label}</p>
-      <div className="min-w-0 text-sm text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function TagList({
-  items,
-  empty,
-  tone = "neutral",
-}: {
-  items: string[];
-  empty: string;
-  tone?: "neutral" | "ok" | "warn" | "fail";
-}) {
-  if (!items.length) return <span className="text-muted-foreground">{empty}</span>;
-
-  const classes =
-    tone === "ok"
-      ? "border-success/30 bg-success/10 text-success"
-      : tone === "warn"
-        ? "border-amber-300 bg-amber-50 text-amber-700"
-        : tone === "fail"
-          ? "border-destructive/30 bg-destructive/10 text-destructive"
-          : "border-border bg-muted text-foreground";
+  const priorityTone: Tone = gap.importance === "high" ? "rose" : "amber";
+  const estimatedDifficulty = gap.importance === "high" ? "Focused" : "Moderate";
 
   return (
-    <div className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <span key={item} className={`rounded-full border px-2.5 py-1 text-xs ${classes}`}>
-          {item}
+    <GlassCard className="p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
+            <Layers3 className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Gap #{index + 1}
+            </p>
+            <h3 className="text-lg font-bold text-foreground">{gap.skill}</h3>
+          </div>
+        </div>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses(priorityTone)}`}>
+          {gap.importance}
         </span>
+      </div>
+
+      <p className="min-h-12 text-sm leading-6 text-muted-foreground">{gap.reason}</p>
+
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <span className="rounded-full border border-white/10 bg-white/50 px-3 py-1.5 text-xs text-muted-foreground dark:bg-white/5">
+          {estimatedDifficulty} difficulty
+        </span>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-primary to-cta px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-lg shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-primary/30"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add to Roadmap
+        </button>
+      </div>
+    </GlassCard>
+  );
+}
+
+function RoadmapTimeline({
+  phases,
+}: {
+  phases: CvAnalysisResult["roadmap"]["phases"];
+}) {
+  if (!phases.length) return <EmptyState text="No learning roadmap was returned." />;
+
+  return (
+    <div className="relative space-y-6">
+      <div className="absolute left-5 top-7 hidden h-[calc(100%-3rem)] w-px bg-gradient-to-b from-primary via-cta to-transparent md:block" />
+      {phases.map((phase) => (
+        <div key={phase.phase} className="relative grid gap-4 md:grid-cols-[44px_1fr]">
+          <div className="hidden md:flex">
+            <span className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-card shadow-lg shadow-primary/20">
+              <span className="h-3 w-3 rounded-full bg-primary shadow-lg shadow-primary" />
+            </span>
+          </div>
+
+          <GlassCard className="p-5">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                  Phase {phase.phase}
+                </p>
+                <h3 className="mt-1 text-xl font-bold text-foreground">{phase.title}</h3>
+              </div>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-sm font-semibold text-blue-700 dark:text-blue-300">
+                <Clock3 className="h-4 w-4" />
+                {phase.durationWeeks} weeks
+              </span>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              {phase.skills.map((skill) => {
+                const firstCourse = skill.recommendedResources[0];
+                return (
+                  <div
+                    key={`${phase.phase}-${skill.skillName}`}
+                    className="rounded-2xl border border-white/10 bg-white/50 p-4 transition hover:-translate-y-1 hover:bg-white/70 dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-foreground">{skill.skillName}</h4>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {skill.estimatedWeeks} weeks · priority {skill.priority}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300">
+                        {difficultyFromPriority(skill.priority)}
+                      </span>
+                    </div>
+
+                    <div className="mb-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <span className="rounded-xl bg-muted/70 px-3 py-2">
+                        Study {skill.adjustedHours ?? skill.baselineHours ?? "-"}h
+                      </span>
+                      <span className="rounded-xl bg-muted/70 px-3 py-2">
+                        Transfer {percent(skill.effectiveTransferBonus ?? skill.transferBonus)}
+                      </span>
+                    </div>
+
+                    <div className="rounded-xl border border-white/10 bg-card/70 p-3">
+                      <p className="line-clamp-1 text-sm font-semibold text-foreground">
+                        {firstCourse?.title ?? "Course recommendation pending"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {firstCourse?.provider ?? "NextStepAI"} · {firstCourse?.durationHours ?? "-"}h
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        </div>
       ))}
     </div>
   );
 }
 
-function AdviceList({
-  title,
-  items,
-  status,
+function CourseCard({
+  course,
 }: {
-  title: string;
-  items: string[];
-  status: Status;
+  course: {
+    phase: number;
+    skillName: string;
+    title: string;
+    provider?: string | null;
+    url?: string | null;
+    durationHours?: number | null;
+  };
 }) {
-  if (!items.length) return null;
-
   return (
-    <div>
-      <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">{title}</p>
-      <div className="space-y-2">
-        {items.map((item) => (
-          <div key={item} className="flex gap-2 rounded-lg border border-border bg-background p-3 text-sm">
-            {status === "ok" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-            ) : (
-              <AlertTriangle
-                className={`mt-0.5 h-4 w-4 shrink-0 ${
-                  status === "warn" ? "text-amber-500" : "text-destructive"
-                }`}
-              />
-            )}
-            <span className="text-foreground">{item}</span>
-          </div>
-        ))}
+    <a
+      href={course.url ?? undefined}
+      target="_blank"
+      rel="noreferrer"
+      className="group rounded-2xl border border-white/10 bg-white/55 p-5 shadow-lg shadow-primary/5 backdrop-blur transition hover:-translate-y-1 hover:border-primary/25 hover:bg-white/75 hover:shadow-primary/15 dark:bg-white/5 dark:hover:bg-white/10"
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-700 dark:text-blue-300">
+          {course.provider ?? "Course"}
+        </span>
+        <ExternalLink className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
       </div>
-    </div>
+      <h3 className="line-clamp-2 min-h-12 text-base font-bold text-foreground">
+        {course.title}
+      </h3>
+      <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
+        <span className="rounded-full bg-muted px-3 py-1">Phase {course.phase}</span>
+        <span className="rounded-full bg-muted px-3 py-1">{course.skillName}</span>
+        <span className="rounded-full bg-muted px-3 py-1">
+          {course.durationHours ?? "-"}h
+        </span>
+      </div>
+    </a>
   );
 }
 
-function AnalysisShell({
+function FinalRecommendation({
   analysis,
-  tab,
-  setTab,
 }: {
   analysis: CvAnalysisResult;
-  tab: Tab;
-  setTab: (tab: Tab) => void;
 }) {
+  const score = clampScore(analysis.jobMatch.score);
+  const weakCount = analysis.gapAnalysis.skillGap.weak.length;
+  const missingCount = analysis.gapAnalysis.skillGap.missing.length;
+  const ats = analysis.jobMatch.scoreBreakdown.atsReadability ?? 0;
+
+  const recommendation =
+    score < 45
+      ? `You should target roles closer to your current ${analysis.extractedProfile.cvLevel || "current"} profile first, then close the top ${Math.min(missingCount, 5)} skill gaps before applying to this role.`
+      : score < 75
+        ? `You are close enough to explore this role, but improving ${weakCount || missingCount} key skill areas will make your application much stronger.`
+        : `This is a strong fit. Polish the CV narrative, add measurable project proof, and apply while continuing the roadmap.`;
+
+  const atsNote =
+    ats >= 70
+      ? "Your ATS readiness is solid, but career fit still depends on skill alignment."
+      : "Your ATS readiness needs cleanup before this CV is competitive.";
+
+  return (
+    <GlassCard className="overflow-hidden p-0">
+      <div className="relative p-6 md:p-8">
+        <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-cta/20 blur-3xl" />
+        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Final AI Recommendation
+            </p>
+            <h2 className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
+              {recommendation}
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+              {atsNote}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 lg:justify-end">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/70 px-4 py-2 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15"
+            >
+              <UploadCloud className="h-4 w-4" />
+              Upload New CV
+            </a>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/70 px-4 py-2 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-white dark:bg-white/10 dark:hover:bg-white/15"
+            >
+              <Save className="h-4 w-4" />
+              Save Roadmap
+            </button>
+            <a
+              href="/jobs"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-cta px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/25 transition hover:-translate-y-0.5 hover:shadow-primary/35"
+            >
+              Explore Similar Jobs
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
+function ResumeMatchDashboard({ analysis }: { analysis: CvAnalysisResult }) {
+  const [showAllMissing, setShowAllMissing] = useState(false);
   const breakdown = analysis.jobMatch.scoreBreakdown;
-  const resumeSkillNames = new Set(
-    analysis.extractedProfile.cvSkills.map((skill) => skill.name.toLowerCase()),
-  );
+  const matchedSkills = analysis.jobMatch.matchedSkills;
+  const missingSkills = analysis.jobMatch.missingSkills;
+  const weakSkills = analysis.gapAnalysis.skillGap.weak;
+  const missingGapDetails = analysis.gapAnalysis.skillGap.missing;
+  const visibleMissingSkills = showAllMissing ? missingSkills : missingSkills.slice(0, 12);
+  const topGaps = missingGapDetails.slice(0, 5);
 
-  const scoreItems = [
-    ["Skill match", breakdown.skillMatch],
-    ["Experience", breakdown.experienceMatch],
-    ["Level", breakdown.levelMatch],
-    ["Salary", breakdown.salaryMatch],
-    ["Location", breakdown.locationMatch],
-    ["Keyword", breakdown.keywordMatch ?? 0],
-    ["Title", breakdown.titleMatch ?? 0],
-    ["ATS readability", breakdown.atsReadability ?? 0],
-  ] as const;
+  const scoreMetrics = [
+    { label: "Skill Match", score: breakdown.skillMatch, icon: Target },
+    { label: "ATS Readiness", score: breakdown.atsReadability ?? 0, icon: ShieldCheck },
+    { label: "Location Match", score: breakdown.locationMatch, icon: MapPin },
+    { label: "Experience Match", score: breakdown.experienceMatch, icon: TrendingUp },
+    { label: "Keyword Match", score: breakdown.keywordMatch ?? 0, icon: Zap },
+  ];
 
-  const allRoadmapResources = useMemo(
+  const courses = useMemo(
     () =>
-      analysis.roadmap.phases.flatMap((phase) =>
-        phase.skills.flatMap((skill) =>
-          skill.recommendedResources.map((resource) => ({
-            ...resource,
-            skillName: skill.skillName,
-            phase: phase.phase,
-          })),
-        ),
-      ),
-    [analysis],
-  );
-
-  const responseJson = useMemo(
-    () => JSON.stringify(analysis, null, 2),
+      analysis.roadmap.phases
+        .flatMap((phase) =>
+          phase.skills.flatMap((skill) =>
+            skill.recommendedResources.map((resource) => ({
+              phase: phase.phase,
+              skillName: skill.skillName,
+              title: resource.title,
+              provider: resource.provider,
+              url: resource.url,
+              durationHours: resource.durationHours,
+            })),
+          ),
+        )
+        .slice(0, 9),
     [analysis],
   );
 
   return (
-    <div className="space-y-4 pb-12">
-      <header className="rounded-lg border border-border bg-card px-4 py-4">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase text-muted-foreground">
-              Resume match report
-            </p>
-            <h1 className="mt-1 truncate text-2xl font-bold text-foreground">
-              {analysis.jobContext.title}
-            </h1>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>Analysis #{analysis.analysisResultId ?? "-"}</span>
-              <span className="h-1 w-1 rounded-full bg-border" />
-              <span>{analysis.extractedProfile.cvLevel || "unknown"} CV</span>
-              <span className="h-1 w-1 rounded-full bg-border" />
-              <span>{analysis.jobContext.jobLevel || "unknown"} job</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative h-24 w-24 shrink-0 rounded-full bg-border">
-              <div
-                className="h-24 w-24 rounded-full"
-                style={{
-                  background: `conic-gradient(var(--primary) ${clampScore(
-                    analysis.jobMatch.score,
-                  )}%, var(--border) 0)`,
-                }}
-              />
-              <div className="absolute inset-2 flex items-center justify-center rounded-full bg-card">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-primary">
-                    {clampScore(analysis.jobMatch.score)}
-                  </p>
-                  <p className="text-[10px] uppercase text-muted-foreground">score</p>
-                </div>
-              </div>
-            </div>
-            <div className="min-w-[150px]">
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusClasses(
-                  scoreStatus(analysis.jobMatch.score),
-                )}`}
-              >
-                {analysis.aiReview?.verdict ?? "analysis_ready"}
-              </span>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {analysis.aiReview?.source
-                  ? `Review source: ${analysis.aiReview.source}`
-                  : "AI review is not available."}
-              </p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="overflow-x-auto border-b border-border">
-        <div className="flex min-w-max gap-1">
-          {tabs.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className={`h-11 px-4 text-sm font-semibold ${
-                tab === item.id
-                  ? "border-b-2 border-primary text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tab === "overview" ? (
-        <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
-          <div className="space-y-4">
-            <Panel title="AI review" icon={Sparkles}>
-              {analysis.aiReview ? (
-                <div className="space-y-5">
-                  <p className="rounded-lg bg-muted p-4 text-sm leading-6 text-foreground">
-                    {analysis.aiReview.summary}
-                  </p>
-                  <div className="grid gap-4 lg:grid-cols-3">
-                    <AdviceList title="Strengths" items={analysis.aiReview.strengths} status="ok" />
-                    <AdviceList title="Concerns" items={analysis.aiReview.concerns} status="fail" />
-                    <AdviceList
-                      title="Recommendations"
-                      items={analysis.aiReview.recommendations}
-                      status="warn"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <EmptyState text="No AI review was returned for this analysis." />
-              )}
-            </Panel>
-
-            <Panel title="Score breakdown" icon={Gauge}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {scoreItems.map(([label, score]) => (
-                  <ProgressMetric key={label} label={label} score={score} />
-                ))}
-              </div>
-            </Panel>
-          </div>
-
-          <div className="space-y-4">
-            <Panel title="Quick facts" icon={Target}>
-              <div className="grid gap-3">
-                <Metric
-                  label="Matched skills"
-                  value={analysis.jobMatch.matchedSkills.length}
-                  note={analysis.jobMatch.matchedSkills.join(", ") || "No matched skill"}
-                />
-                <Metric
-                  label="Missing skills"
-                  value={analysis.jobMatch.missingSkills.length}
-                  note="Skills required by the job but absent from CV"
-                />
-                <Metric
-                  label="Roadmap"
-                  value={`${analysis.roadmap.totalWeeks} weeks`}
-                  note={`${analysis.roadmap.difficultyLevel} difficulty`}
-                />
-                <Metric
-                  label="Experience gap"
-                  value={`${analysis.gapAnalysis.experienceGap.gapWeeks} weeks`}
-                  note={`${analysis.gapAnalysis.experienceGap.currentYears}/${analysis.gapAnalysis.experienceGap.requiredYears} years`}
-                />
-              </div>
-            </Panel>
-          </div>
-        </div>
-      ) : null}
-
-      {tab === "resume" ? (
-        <div className="space-y-4">
-          <Panel title="Extracted CV profile" icon={FileText}>
-            <div className="overflow-hidden rounded-lg border border-border">
-              <DataRow label="CV level" value={analysis.extractedProfile.cvLevel || "-"} />
-              <DataRow
-                label="Years experience"
-                value={`${analysis.extractedProfile.cvYearsExperience} years`}
-              />
-              <DataRow
-                label="Preferred locations"
-                value={
-                  <TagList
-                    items={analysis.extractedProfile.preferredLocations}
-                    empty="No preferred location detected"
-                  />
-                }
-              />
-              <DataRow
-                label="Certifications"
-                value={
-                  <TagList
-                    items={analysis.extractedProfile.cvCertifications}
-                    empty="No certification detected"
-                    tone="ok"
-                  />
-                }
-              />
-            </div>
-          </Panel>
-
-          <Panel title="CV skills" icon={GraduationCap}>
-            {analysis.extractedProfile.cvSkills.length ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[620px] table-fixed">
-                  <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3">Skill</th>
-                      <th className="w-[180px] px-4 py-3">Proficiency</th>
-                      <th className="w-[180px] px-4 py-3">Experience</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analysis.extractedProfile.cvSkills.map((skill) => (
-                      <tr key={skill.name} className="border-t border-border text-sm">
-                        <td className="px-4 py-3 font-medium text-foreground">{skill.name}</td>
-                        <td className="px-4 py-3 text-foreground">{asPercent(skill.proficiency)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {skill.yearsOfExperience} years
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState text="No CV skill was extracted." />
-            )}
-          </Panel>
-        </div>
-      ) : null}
-
-      {tab === "job" ? (
-        <div className="space-y-4">
-          <Panel
-            title="Job context"
-            icon={BriefcaseBusiness}
-            action={
-              analysis.jobContext.sourceUrl ? (
-                <a
-                  href={analysis.jobContext.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                >
-                  Source <ExternalLink className="h-3 w-3" />
-                </a>
-              ) : null
-            }
-          >
-            <div className="overflow-hidden rounded-lg border border-border">
-              <DataRow label="Job ID" value={analysis.jobContext.jobId} />
-              <DataRow label="Title" value={analysis.jobContext.title || "-"} />
-              <DataRow label="Level" value={analysis.jobContext.jobLevel || "-"} />
-              <DataRow
-                label="Required experience"
-                value={`${analysis.jobContext.jobYearsRequired} years`}
-              />
-              <DataRow
-                label="Location"
-                value={
-                  <span className="inline-flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                    {analysis.jobContext.jobLocation ?? "-"}
-                  </span>
-                }
-              />
-              <DataRow label="Remote" value={analysis.jobContext.jobIsRemote ? "Yes" : "No"} />
-            </div>
-          </Panel>
-
-          <Panel title="Required job skills" icon={Target}>
-            {analysis.jobContext.jobSkills.length ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[760px] table-fixed">
-                  <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3">Skill</th>
-                      <th className="w-[150px] px-4 py-3">Importance</th>
-                      <th className="w-[170px] px-4 py-3">Required level</th>
-                      <th className="w-[130px] px-4 py-3">In CV</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analysis.jobContext.jobSkills.map((skill) => {
-                      const found = resumeSkillNames.has(skill.name.toLowerCase());
-                      return (
-                        <tr key={skill.name} className="border-t border-border text-sm">
-                          <td className="px-4 py-3 font-medium text-foreground">{skill.name}</td>
-                          <td className="px-4 py-3 text-foreground">{asPercent(skill.importance)}</td>
-                          <td className="px-4 py-3 text-foreground">
-                            {asPercent(skill.requiredProficiency)}
-                          </td>
-                          <td className={found ? "px-4 py-3 text-success" : "px-4 py-3 text-destructive"}>
-                            {found ? "Found" : "Missing"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState text="No required job skill was returned." />
-            )}
-          </Panel>
-        </div>
-      ) : null}
-
-      {tab === "gaps" ? (
-        <div className="space-y-4">
-          <Panel title="Skill gap" icon={AlertTriangle}>
-            <div className="grid gap-4 lg:grid-cols-2">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.12),transparent_32%),radial-gradient(circle_at_top_right,rgba(124,58,237,0.10),transparent_28%)] pb-14">
+      <div className="mx-auto max-w-7xl space-y-10 px-4 py-6 sm:px-6 lg:px-8">
+        <GlassCard className="relative overflow-hidden p-6 md:p-8">
+          <div className="absolute -left-12 top-0 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+          <div className="absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-cta/20 blur-3xl" />
+          <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="space-y-6">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                  Missing skills
+                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  NextStepAI Match Intelligence
                 </p>
-                {analysis.gapAnalysis.skillGap.missing.length ? (
-                  <div className="space-y-2">
-                    {analysis.gapAnalysis.skillGap.missing.map((item) => (
-                      <div key={`${item.skill}-${item.reason}`} className="rounded-lg border border-border bg-background p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-semibold text-foreground">{item.skill}</p>
-                          <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
-                            {item.importance}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-sm text-muted-foreground">{item.reason}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState text="No missing skill." />
-                )}
+                <h1 className="max-w-3xl text-3xl font-black tracking-tight text-foreground md:text-5xl">
+                  {analysis.jobContext.title}
+                </h1>
+                <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground">
+                  {analysis.aiReview?.summary ??
+                    "NextStepAI analyzed your resume against this role and prepared a personalized improvement plan."}
+                </p>
               </div>
 
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                  Weak skills
-                </p>
-                {analysis.gapAnalysis.skillGap.weak.length ? (
-                  <div className="space-y-2">
-                    {analysis.gapAnalysis.skillGap.weak.map((item) => (
-                      <div key={`${item.skill}-${item.gap}`} className="rounded-lg border border-border bg-background p-3">
-                        <p className="font-semibold text-foreground">{item.skill}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          Current {asPercent(item.currentProficiency)}, required{" "}
-                          {asPercent(item.requiredProficiency)}, gap {asPercent(item.gap)}.
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EmptyState text="No weak skill." />
-                )}
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Other gaps and recommendations" icon={Target}>
-            <div className="overflow-hidden rounded-lg border border-border">
-              <DataRow
-                label="Recommended skills"
-                value={
-                  <TagList
-                    items={analysis.gapAnalysis.recommendedSkills}
-                    empty="No recommended skill"
-                    tone="warn"
-                  />
-                }
-              />
-              <DataRow
-                label="Experience gap"
-                value={`${analysis.gapAnalysis.experienceGap.currentYears}/${analysis.gapAnalysis.experienceGap.requiredYears} years, ${analysis.gapAnalysis.experienceGap.gapWeeks} weeks gap`}
-              />
-              <DataRow
-                label="Level gap"
-                value={`${analysis.gapAnalysis.levelGap.cvLevel} CV vs ${analysis.gapAnalysis.levelGap.jobLevel} job, ${analysis.gapAnalysis.levelGap.gapLevels} level gap`}
-              />
-              <DataRow
-                label="Required certs"
-                value={
-                  <TagList
-                    items={analysis.gapAnalysis.certificationGap.required}
-                    empty="No required certification"
-                  />
-                }
-              />
-              <DataRow
-                label="Have certs"
-                value={
-                  <TagList
-                    items={analysis.gapAnalysis.certificationGap.have}
-                    empty="No detected certification"
-                    tone="ok"
-                  />
-                }
-              />
-              <DataRow
-                label="Missing certs"
-                value={
-                  <TagList
-                    items={analysis.gapAnalysis.certificationGap.missing}
-                    empty="No missing certification"
-                    tone="fail"
-                  />
-                }
+              <ScoreRing
+                score={analysis.jobMatch.score}
+                verdict={analysis.aiReview?.verdict}
               />
             </div>
-          </Panel>
 
-          <Panel title="Matched and missing keywords" icon={CheckCircle2}>
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                  Matched
-                </p>
-                <TagList items={analysis.jobMatch.matchedSkills} empty="No matched keyword" tone="ok" />
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                  Missing
-                </p>
-                <TagList items={analysis.jobMatch.missingSkills} empty="No missing keyword" tone="fail" />
-              </div>
-            </div>
-          </Panel>
-        </div>
-      ) : null}
-
-      {tab === "roadmap" ? (
-        <div className="space-y-4">
-          <Panel title="Roadmap summary" icon={BookOpen}>
-            <div className="grid gap-3 md:grid-cols-3">
-              <Metric label="Total weeks" value={analysis.roadmap.totalWeeks} />
-              <Metric label="Estimated completion" value={analysis.roadmap.estimatedCompletion} />
-              <Metric label="Difficulty" value={analysis.roadmap.difficultyLevel} />
-            </div>
-          </Panel>
-
-          {analysis.roadmap.phases.length ? (
-            analysis.roadmap.phases.map((phase) => (
-              <Panel
-                key={phase.phase}
-                title={`Phase ${phase.phase}: ${phase.title}`}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <StatCard
+                label="ATS score"
+                value={breakdown.atsReadability ?? 0}
+                note="Resume parsing and screening readiness"
+                icon={ShieldCheck}
+                tone={scoreTone(breakdown.atsReadability ?? 0)}
+              />
+              <StatCard
+                label="Matched skills"
+                value={matchedSkills.length}
+                note="Skills already aligned with the JD"
+                icon={CheckCircle2}
+                tone="emerald"
+              />
+              <StatCard
+                label="Missing skills"
+                value={missingSkills.length}
+                note="Skills to close before applying"
+                icon={AlertTriangle}
+                tone={missingSkills.length ? "rose" : "emerald"}
+              />
+              <StatCard
+                label="Roadmap"
+                value={`${analysis.roadmap.totalWeeks}w`}
+                note={`${analysis.roadmap.difficultyLevel} plan until ${analysis.roadmap.estimatedCompletion}`}
                 icon={BookOpen}
-                action={
-                  <span className="text-xs font-semibold text-muted-foreground">
-                    {phase.durationWeeks} weeks
-                  </span>
-                }
-              >
-                <div className="grid gap-3">
-                  {phase.skills.map((skill) => (
-                    <div key={`${phase.phase}-${skill.skillName}`} className="rounded-lg border border-border bg-background p-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{skill.skillName}</h3>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {skill.estimatedWeeks} weeks, priority {skill.priority}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 text-xs">
-                          <span className="rounded-full border border-border bg-muted px-2 py-1">
-                            baseline {skill.baselineHours ?? "-"}h
-                          </span>
-                          <span className="rounded-full border border-border bg-muted px-2 py-1">
-                            adjusted {skill.adjustedHours ?? "-"}h
-                          </span>
-                          <span className="rounded-full border border-border bg-muted px-2 py-1">
-                            transfer {asPercent(skill.transferBonus)}
-                          </span>
-                          <span className="rounded-full border border-border bg-muted px-2 py-1">
-                            effective {skill.effectiveTransferBonus != null ? asPercent(skill.effectiveTransferBonus) : "-"}
-                          </span>
-                          <span className="rounded-full border border-border bg-muted px-2 py-1">
-                            direction {skill.transferDirectionFactor ?? "-"}
-                          </span>
-                        </div>
-                      </div>
+                tone="blue"
+              />
+            </div>
+          </div>
+        </GlassCard>
 
-                      <div className="mt-3">
-                        <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
-                          Recommended resources
-                        </p>
-                        {skill.recommendedResources.length ? (
-                          <div className="grid gap-2 md:grid-cols-2">
-                            {skill.recommendedResources.map((resource) => (
-                              <a
-                                key={`${skill.skillName}-${resource.title}-${resource.url ?? ""}`}
-                                href={resource.url ?? undefined}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="rounded-lg border border-border bg-card p-3 text-sm hover:bg-muted"
-                              >
-                                <p className="font-medium text-foreground">{resource.title}</p>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                  {resource.provider ?? "Unknown provider"} ·{" "}
-                                  {resource.durationHours ?? "-"}h
-                                </p>
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            No resource returned for this skill.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+        <section>
+          <SectionHeader
+            eyebrow="AI career coach"
+            title="AI Review"
+            description="A recruiter-style readout that turns the analysis into practical next steps."
+            icon={Sparkles}
+          />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <AdviceCard
+              title="Strengths"
+              items={analysis.aiReview?.strengths ?? []}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+            <AdviceCard
+              title="Concerns"
+              items={analysis.aiReview?.concerns ?? []}
+              icon={AlertTriangle}
+              tone="rose"
+            />
+            <AdviceCard
+              title="Recommendations"
+              items={analysis.aiReview?.recommendations ?? []}
+              icon={Sparkles}
+              tone="blue"
+            />
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader
+            eyebrow="Skill intelligence"
+            title="Skills Match"
+            description="See what already works, what needs sharpening, and what is missing from the CV."
+            icon={Target}
+          />
+          <div className="grid gap-6 xl:grid-cols-[0.85fr_1fr_0.85fr]">
+            <GlassCard className="p-5">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                Matched Skills
+              </h3>
+              {matchedSkills.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {matchedSkills.map((skill) => (
+                    <SkillPill key={skill} skill={skill} tone="emerald" icon={CheckCircle2} />
                   ))}
                 </div>
-              </Panel>
-            ))
-          ) : (
-            <EmptyState text="No roadmap phase was returned." />
-          )}
+              ) : (
+                <EmptyState text="No matched skills found yet." />
+              )}
+            </GlassCard>
 
-          <Panel title="All recommended resources" icon={ExternalLink}>
-            {allRoadmapResources.length ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <table className="w-full min-w-[760px] table-fixed">
-                  <thead className="bg-muted text-left text-xs uppercase text-muted-foreground">
-                    <tr>
-                      <th className="w-[90px] px-4 py-3">Phase</th>
-                      <th className="px-4 py-3">Skill</th>
-                      <th className="px-4 py-3">Resource</th>
-                      <th className="w-[150px] px-4 py-3">Provider</th>
-                      <th className="w-[110px] px-4 py-3">Hours</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allRoadmapResources.map((resource) => (
-                      <tr
-                        key={`${resource.phase}-${resource.skillName}-${resource.title}`}
-                        className="border-t border-border text-sm"
-                      >
-                        <td className="px-4 py-3 text-muted-foreground">{resource.phase}</td>
-                        <td className="px-4 py-3 font-medium text-foreground">{resource.skillName}</td>
-                        <td className="px-4 py-3">
-                          {resource.url ? (
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {resource.title}
-                            </a>
-                          ) : (
-                            <span className="text-foreground">{resource.title}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {resource.provider ?? "-"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {resource.durationHours ?? "-"}
-                        </td>
-                      </tr>
+            <GlassCard className="p-5">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
+                <Gauge className="h-5 w-5 text-amber-500" />
+                Skills to Strengthen
+              </h3>
+              {weakSkills.length ? (
+                <div className="space-y-3">
+                  <div className="grid gap-3">
+                    {weakSkills.slice(0, 4).map((skill) => (
+                      <SkillStrengtheningCard
+                        key={`${skill.skill}-${skill.gap}`}
+                        skill={skill}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <EmptyState text="No recommended resource was returned." />
-            )}
-          </Panel>
-        </div>
-      ) : null}
+                  </div>
+                  <StrengtheningTip />
+                </div>
+              ) : (
+                <EmptyState text="No skills need extra evidence for this role." />
+              )}
+            </GlassCard>
 
-      {tab === "response" ? (
-        <Panel title="Full response payload" icon={FileText}>
-          <pre className="max-h-[680px] overflow-auto rounded-lg bg-foreground p-4 font-mono text-xs leading-5 text-background">
-            {responseJson}
-          </pre>
-        </Panel>
-      ) : null}
+            <GlassCard className="p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h3 className="flex items-center gap-2 text-lg font-bold text-foreground">
+                  <AlertTriangle className="h-5 w-5 text-rose-500" />
+                  Missing Skills
+                </h3>
+                {missingSkills.length > 12 ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMissing((value) => !value)}
+                    className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/50 px-3 py-1 text-xs font-bold text-foreground transition hover:bg-white dark:bg-white/5 dark:hover:bg-white/10"
+                  >
+                    {showAllMissing ? "Show less" : "Show more"}
+                    {showAllMissing ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  </button>
+                ) : null}
+              </div>
+              {visibleMissingSkills.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {visibleMissingSkills.map((skill) => (
+                    <SkillPill key={skill} skill={skill} tone="rose" />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState text="No missing skills. Nice fit." />
+              )}
+            </GlassCard>
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader
+            eyebrow="Analytics"
+            title="Score Breakdown"
+            description="Modern match analytics across the signals most recruiters and ATS systems care about."
+            icon={Gauge}
+          />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {scoreMetrics.map((metric) => (
+              <ScoreMetric
+                key={metric.label}
+                label={metric.label}
+                score={metric.score}
+                icon={metric.icon}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <SectionHeader
+            eyebrow="Priority gaps"
+            title="Top Skill Gaps"
+            description="The five most important skills to add or strengthen before targeting this job."
+            icon={Lightbulb}
+          />
+          {topGaps.length ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {topGaps.map((gap, index) => (
+                <GapCard key={`${gap.skill}-${gap.reason}`} gap={gap} index={index} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="No major missing skill gaps were returned." />
+          )}
+        </section>
+
+        <section>
+          <SectionHeader
+            eyebrow="Personalized growth plan"
+            title="Learning Roadmap"
+            description="A phase-by-phase plan designed to move this CV closer to the target job."
+            icon={Rocket}
+          />
+          <RoadmapTimeline phases={analysis.roadmap.phases} />
+        </section>
+
+        <section>
+          <SectionHeader
+            eyebrow="Learning resources"
+            title="Recommended Courses"
+            description="Course cards pulled from the roadmap, grouped into a clean learning marketplace view."
+            icon={GraduationCap}
+          />
+          {courses.length ? (
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {courses.map((course) => (
+                <CourseCard
+                  key={`${course.phase}-${course.skillName}-${course.title}`}
+                  course={course}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="No course recommendations were returned for this roadmap." />
+          )}
+        </section>
+
+        <FinalRecommendation analysis={analysis} />
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <GlassCard className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              CV profile
+            </p>
+            <p className="mt-2 text-xl font-bold text-foreground">
+              {analysis.extractedProfile.cvLevel || "Unknown"} ·{" "}
+              {analysis.extractedProfile.cvYearsExperience} years
+            </p>
+          </GlassCard>
+          <GlassCard className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Target role
+            </p>
+            <p className="mt-2 text-xl font-bold text-foreground">
+              {analysis.jobContext.jobLevel || "Unknown"} ·{" "}
+              {analysis.jobContext.jobYearsRequired} years
+            </p>
+          </GlassCard>
+          <GlassCard className="p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Career fit
+            </p>
+            <p className="mt-2 text-xl font-bold text-foreground">
+              {analysis.gapAnalysis.experienceGap.gapWeeks} weeks experience gap
+            </p>
+          </GlassCard>
+        </div>
+
+        <GlassCard className="p-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <BriefcaseBusiness className="h-4 w-4 text-primary" />
+                Source job
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {analysis.jobContext.jobLocation ?? "Location not specified"} ·{" "}
+                {analysis.jobContext.jobIsRemote ? "Remote available" : "On-site or hybrid"}
+              </p>
+            </div>
+            {analysis.jobContext.sourceUrl ? (
+              <a
+                href={analysis.jobContext.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary transition hover:-translate-y-0.5 hover:bg-primary/15"
+              >
+                View JD
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            ) : null}
+          </div>
+        </GlassCard>
+      </div>
     </div>
   );
 }
 
 export function MatchReportPage() {
-  const [tab, setTab] = useState<Tab>("overview");
   const analysisId = getLatestAnalysisId();
   const { analysis, loading, error } = useCvAnalysisResult(analysisId);
 
@@ -865,7 +957,7 @@ export function MatchReportPage() {
 
   return (
     <AppShell fullWidth>
-      <AnalysisShell analysis={analysis} tab={tab} setTab={setTab} />
+      <ResumeMatchDashboard analysis={analysis} />
     </AppShell>
   );
 }

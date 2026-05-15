@@ -13,6 +13,8 @@ import {
   scanHistoryRoute,
   matchReportRoute,
   sampleReportRoute,
+  profileRoute,
+  settingsRoute,
 } from "./routes";
 
 // Add the current app routes to the root route tree.
@@ -29,6 +31,8 @@ const routeTree = rootRoute.addChildren([
   registerRoute,
   forgotPasswordRoute,
   googleCallbackRoute,
+  profileRoute,
+  settingsRoute,
 ]);
 
 export const router = createRouter({

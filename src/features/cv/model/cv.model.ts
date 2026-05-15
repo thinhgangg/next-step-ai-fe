@@ -381,7 +381,7 @@ export function useSetBaseCv() {
     SET_BASE_CV,
   );
 
-  const setBaseCv = async (cvId: number) => {
+  const setBaseCv = async (cvId: number | null) => {
     const { data } = await setBaseCvMutation({
       variables: { cvId },
       refetchQueries: [{ query: ME_QUERY }],

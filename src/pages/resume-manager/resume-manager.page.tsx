@@ -2,11 +2,14 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   BriefcaseBusiness,
+  CheckCircle2,
   CloudUpload,
   Eye,
+  FileText,
   Loader2,
   RefreshCcw,
   Search,
+  Sparkles,
   Star,
   Trash2,
   ChevronLeft,
@@ -63,6 +66,54 @@ function base64ToBlob(base64: string, contentType: string) {
   });
 }
 
+function PageCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-xl border border-border bg-card shadow-sm ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  note,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | number;
+  note: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <PageCard className="p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p
+            className="mt-2 line-clamp-2 break-words text-2xl font-bold tracking-tight text-foreground"
+            title={String(value)}
+          >
+            {value}
+          </p>
+        </div>
+        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10 text-primary">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+      <p className="line-clamp-2 text-sm text-muted-foreground">{note}</p>
+    </PageCard>
+  );
+}
+
 export function ResumeManagerPage() {
   const navigate = useNavigate();
   const { cvs, loading, error, refetch } = useUserCvs();
@@ -76,9 +127,9 @@ export function ResumeManagerPage() {
   const { showToast } = useToast();
   const [searchValue, setSearchValue] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UploadedCv | null>(null);
-  const [optimisticBaseCvId, setOptimisticBaseCvId] = useState<string | null>(
-    null,
-  );
+  const [optimisticBaseCvId, setOptimisticBaseCvId] = useState<
+    string | null | undefined
+  >(undefined);
   const [editingCvId, setEditingCvId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,7 +172,16 @@ export function ResumeManagerPage() {
   }, [analysisHistory]);
   const isInitialLoading = loading && cvs.length === 0;
 
-  const baseCvId = optimisticBaseCvId ?? (user?.baseCvId ? String(user.baseCvId) : null);
+  const baseCvId =
+    optimisticBaseCvId !== undefined
+      ? optimisticBaseCvId
+      : user?.baseCvId
+        ? String(user.baseCvId)
+        : null;
+  const baseResume = useMemo(
+    () => cvs.find((cv) => String(cv.cvId) === baseCvId) ?? null,
+    [baseCvId, cvs],
+  );
 
   const handleUpload = async (file?: File) => {
     if (!file) return;
@@ -160,7 +220,7 @@ export function ResumeManagerPage() {
   };
 
   const handleMatchJobs = async (cv: UploadedCv) => {
-    await handleSetBase(cv);
+    await handleSetBase(cv, { allowUnset: false });
     navigate({ to: "/jobs" });
   };
 
@@ -192,11 +252,19 @@ export function ResumeManagerPage() {
     }
   };
 
-  const handleSetBase = async (cv: UploadedCv) => {
+  const handleSetBase = async (
+    cv: UploadedCv,
+    options: { allowUnset?: boolean } = {},
+  ) => {
+    const isCurrentBase = baseCvId === String(cv.cvId);
+    const shouldUnset = Boolean(options.allowUnset ?? true) && isCurrentBase;
+
     try {
-      const nextBaseCvId = await setBaseCv(Number(cv.cvId));
+      const nextBaseCvId = await setBaseCv(
+        shouldUnset ? null : Number(cv.cvId),
+      );
       setOptimisticBaseCvId(nextBaseCvId ? String(nextBaseCvId) : null);
-      showToast("Base resume updated");
+      showToast(shouldUnset ? "Base resume removed" : "Base resume updated");
     } catch {
       showToast("Could not update base resume", {
         description: "Please try again in a moment.",
@@ -238,68 +306,86 @@ export function ResumeManagerPage() {
 
   return (
     <AppShell fullWidth>
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <section className="border-b border-border bg-muted p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="mx-auto max-w-[1480px] space-y-5">
+        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Resume library
+            </p>
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              Resume Manager
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Manage resume files, choose a base resume, and send the right CV
+              into job matching or analysis.
+            </p>
+          </div>
+
+          <label className="inline-flex h-10 w-fit cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CloudUpload className="h-4 w-4" />
+            )}
+            {isUploading ? "Uploading..." : "Upload resume"}
+            <input
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx,.txt"
+              disabled={isUploading}
+              onChange={(event) => {
+                void handleUpload(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <MetricCard
+            label="Saved resumes"
+            value={cvs.length}
+            note="Files available for CV analysis and job matching."
+            icon={FileText}
+          />
+          <MetricCard
+            label="Base resume"
+            value={baseResume?.fileName ?? "--"}
+            note={
+              baseResume
+                ? "Used by default for job matching."
+                : "Choose a base resume for matching."
+            }
+            icon={Star}
+          />
+          <MetricCard
+            label="Latest upload"
+            value={latestUploadDate}
+            note="Most recent resume added to your library."
+            icon={CloudUpload}
+          />
+          <MetricCard
+            label="Supported files"
+            value="PDF"
+            note="PDF, DOC, DOCX, and TXT are supported."
+            icon={CheckCircle2}
+          />
+        </section>
+
+        <PageCard className="p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-[22px] font-bold text-foreground">
-                Resume Manager
+              <h2 className="text-base font-bold text-foreground">
+                Resume files
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Manage CVs for scans and job matching.
+                Rename, preview, set base resume, or start matching jobs.
               </p>
             </div>
 
-            <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CloudUpload className="h-4 w-4" />
-              )}
-              {isUploading ? "Uploading..." : "Upload CV"}
-              <input
-                type="file"
-                className="hidden"
-                accept=".pdf,.doc,.docx,.txt"
-                disabled={isUploading}
-                onChange={(event) => {
-                  void handleUpload(event.target.files?.[0]);
-                  event.target.value = "";
-                }}
-              />
-            </label>
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-border bg-card px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Total CVs
-                </p>
-                <p className="mt-1 text-2xl font-bold text-foreground">
-                  {cvs.length}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border bg-card px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Latest Upload
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {latestUploadDate}
-                </p>
-              </div>
-              <div className="rounded-lg border border-border bg-card px-4 py-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Supported Files
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  PDF, DOCX, TXT
-                </p>
-              </div>
-            </div>
-
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-[280px] max-w-full">
+              <div className="relative w-[300px] max-w-full">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={searchValue}
@@ -307,23 +393,20 @@ export function ResumeManagerPage() {
                     setSearchValue(event.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search CVs"
-                  className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-foreground"
+                  placeholder="Search resumes"
+                  className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-background"
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Refresh
               </button>
             </div>
           </div>
-        </section>
-
-        <section className="bg-background p-5">
           {isInitialLoading ? (
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -358,10 +441,10 @@ export function ResumeManagerPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[960px] table-fixed">
                     <thead>
-                      <tr className="border-b border-border bg-card text-left text-sm font-semibold text-foreground">
+                      <tr className="border-b border-border bg-background/50 text-left text-sm font-semibold text-foreground">
                         <th className="w-[88px] px-5 py-3">Base</th>
                         <th className="w-[280px] px-4 py-3">Resume</th>
-                        <th className="px-4 py-3">Job Title</th>
+                        <th className="px-4 py-3">Latest target job</th>
                         <th className="w-[150px] px-4 py-3">Created</th>
                         <th className="w-[150px] px-4 py-3">Last Modified</th>
                         <th className="w-[150px] px-4 py-3 text-right">
@@ -381,7 +464,11 @@ export function ResumeManagerPage() {
                               onClick={() => void handleSetBase(cv)}
                               disabled={isSettingBaseCv}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                              title="Set as base resume"
+                              title={
+                                baseCvId === String(cv.cvId)
+                                  ? "Remove base resume"
+                                  : "Set as base resume"
+                              }
                             >
                               <Star
                                 className={`h-4 w-4 ${
@@ -423,9 +510,11 @@ export function ResumeManagerPage() {
                                   {cv.fileName}
                                 </button>
                               )}
-                              <p className="mt-1 truncate text-xs text-muted-foreground">
-                                Upload #{cv.cvId}
-                              </p>
+                              {baseCvId === String(cv.cvId) ? (
+                                <p className="mt-1 truncate text-xs text-primary">
+                                  Base resume
+                                </p>
+                              ) : null}
                             </div>
                           </td>
                           <td className="px-4 py-4 text-sm">
@@ -512,7 +601,7 @@ export function ResumeManagerPage() {
               </div>
             </div>
           )}
-        </section>
+        </PageCard>
       </div>
 
       {deleteTarget ? (

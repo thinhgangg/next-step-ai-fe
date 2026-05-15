@@ -157,7 +157,7 @@ export const RENAME_CV = gql`
 `;
 
 export const SET_BASE_CV = gql`
-  mutation SetBaseCv($cvId: Int!) {
+  mutation SetBaseCv($cvId: Int) {
     setBaseCv(cvId: $cvId) {
       userId
       baseCvId

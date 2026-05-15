@@ -28,7 +28,9 @@ type NavItem = {
     | "/resume-optimizer"
     | "/resume-manager"
     | "/jobs"
-    | "/scan-history";
+    | "/scan-history"
+    | "/profile"
+    | "/settings";
 };
 
 const navItems: NavItem[] = [
@@ -55,6 +57,18 @@ const navItems: NavItem[] = [
     label: "Scan History",
     icon: History,
     to: "/scan-history",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    icon: User,
+    to: "/profile",
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: Settings,
+    to: "/settings",
   },
 ];
 
@@ -241,6 +255,10 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
                   <div className="py-2">
                     <button
                       type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        navigate({ to: "/settings" });
+                      }}
                       className="w-full px-4 py-2.5 flex items-center gap-2 text-left text-sm text-foreground hover:bg-background"
                     >
                       <Settings className="w-4 h-4" />
