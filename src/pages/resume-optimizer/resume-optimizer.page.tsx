@@ -170,7 +170,7 @@ function LatestAnalysisPanel({
 
   return (
     <PageCard className="p-5">
-      <SectionTitle title="Latest Optimization Result" />
+      <SectionTitle title="Latest Resume Report" />
       {latestAnalysis ? (
         <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
           <ScoreRing score={score} />
@@ -199,10 +199,10 @@ function LatestAnalysisPanel({
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center">
           <FileSearch className="mx-auto h-9 w-9 text-muted-foreground" />
           <h3 className="mt-3 text-base font-bold text-foreground">
-            No result yet
+            No report yet
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Upload a CV and choose a target job to generate your first report.
+            Upload a CV and choose a target job to create your first report.
           </p>
         </div>
       )}
@@ -302,14 +302,14 @@ function RecentReportList({
 function OptimizationTips() {
   const tips = [
     "Use a PDF or DOCX file with clear headings and consistent spacing.",
-    "Pick a specific target job so the AI can compare skills, keywords, and experience.",
+    "Pick a specific target job so your report can compare skills, keywords, and experience.",
     "Add measurable project outcomes before rescanning your CV.",
     "Keep one base CV in Resume Manager for faster job matching.",
   ];
 
   return (
     <PageCard className="p-5">
-      <SectionTitle title="How to Get Better Results" />
+      <SectionTitle title="How to Improve Your Match" />
       <div className="space-y-3">
         {tips.map((tip) => (
           <div
@@ -359,14 +359,14 @@ export function ResumeOptimizerPage() {
           <div>
             <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              AI resume optimization
+              Resume optimization
             </p>
             <h1 className="text-3xl font-black tracking-tight text-foreground">
               Analyze and improve your CV
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Compare your resume with a target role, discover missing skills,
-              and turn the result into focused next steps.
+              Compare your resume with a target job, discover missing skills,
+              and turn the report into focused next steps.
             </p>
           </div>
 
@@ -393,10 +393,12 @@ export function ResumeOptimizerPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Latest match"
-            value={historyLoading ? "..." : latestScore ? `${latestScore}%` : "--"}
+            value={
+              historyLoading ? "..." : latestScore ? `${latestScore}%` : "--"
+            }
             note={
               latestAnalysis
-                ? `${scoreLabel(latestScore)} fit for the latest target role.`
+                ? `${scoreLabel(latestScore)} fit for the latest target job.`
                 : "Run a scan to calculate a match score."
             }
             icon={Target}
@@ -411,14 +413,14 @@ export function ResumeOptimizerPage() {
                   ? `${clampScore(atsScore)}%`
                   : "--"
             }
-            note="Parsed from the latest analysis result."
+            note="Based on your latest resume scan."
             icon={Gauge}
             tone="blue"
           />
           <MetricCard
             label="Recognized skills"
             value={analysisLoading ? "..." : recognizedSkills}
-            note="Skills detected from your latest CV analysis."
+            note="Skills found in your latest resume scan."
             icon={CheckCircle2}
             tone="emerald"
           />
@@ -440,14 +442,14 @@ export function ResumeOptimizerPage() {
                 icon={CheckCircle2}
                 tone="emerald"
                 items={strengths}
-                emptyText="Strengths will appear after your next CV analysis."
+                emptyText="Strengths will appear after your next scan."
               />
               <InsightList
                 title="What to Improve"
                 icon={Lightbulb}
                 tone="amber"
                 items={recommendations}
-                emptyText="Improvement suggestions will appear after your next CV analysis."
+                emptyText="Suggestions will appear after your next scan."
               />
             </div>
           </div>
@@ -478,7 +480,8 @@ export function ResumeOptimizerPage() {
                 </div>
               ) : (
                 <p className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Missing keywords will appear after matching a CV with a job.
+                  Missing keywords will appear after matching a CV with a target
+                  job.
                 </p>
               )}
             </PageCard>

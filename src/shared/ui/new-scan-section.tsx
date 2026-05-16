@@ -166,11 +166,13 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       setJdText(text.trim());
       if (!isTextFile) {
         setJdMessage(
-          "JD file selected. It will be analyzed directly when you scan.",
+          "Job description selected. It will be used for this scan.",
         );
       }
     } catch {
-      setJdError("Could not read this JD file. Paste the JD text instead.");
+      setJdError(
+        "Could not read this job description. Paste the text instead.",
+      );
     } finally {
       event.target.value = "";
     }
@@ -261,7 +263,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       console.error("Analyze error:", error);
       setUploadMessage(null);
       setUploadError(
-        "Scan failed. Please try again with another resume or JD.",
+        "Scan failed. Please try again with another resume or job description.",
       );
     } finally {
       stopScanProgressMessages();
@@ -285,7 +287,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     <div className="overflow-hidden rounded-xl border border-primary/10 bg-card shadow-sm">
       <section className="border-b border-border bg-card p-5 pb-4">
         <h2 className="text-[22px] font-bold text-foreground">
-          Scan Resume and JD
+          Scan Resume and Job Description
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Start with files for the most reliable scan. Paste text only when a
@@ -529,7 +531,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       type="button"
                       onClick={clearSelectedJd}
                       className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
-                      aria-label="Remove selected JD"
+                      aria-label="Remove selected job description"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -537,7 +539,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-bold text-primary">
-                      JD selected
+                      Job description selected
                     </span>
                     <span className="mt-2 max-w-full break-words text-sm font-medium text-foreground">
                       {selectedJdName}
@@ -552,7 +554,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   <label className="flex h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
                     <CloudUpload className="h-8 w-8 text-primary" />
                     <span className="text-sm font-bold text-foreground">
-                      Upload JD file
+                      Upload job description
                     </span>
                     <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
                       TXT or MD works best today. PDF, DOC, and DOCX can be used
@@ -580,7 +582,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       setJdMessage(null);
                       setJdError(null);
                     }}
-                    placeholder="Paste job description text or search keywords."
+                    placeholder="Paste the job description here."
                     className="h-full w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 </div>

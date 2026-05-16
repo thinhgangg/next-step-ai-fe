@@ -215,7 +215,7 @@ function RecentAnalysisCard({
 
   return (
     <DashboardCard className="p-5">
-      <SectionTitle title="Latest Match Analysis" />
+      <SectionTitle title="Latest Match Report" />
 
       {latestAnalysis ? (
         <div className="grid gap-5 xl:grid-cols-[auto_minmax(0,1fr)_280px] xl:items-center">
@@ -289,7 +289,7 @@ function RecentAnalysisCard({
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center">
           <FileSearch className="mx-auto h-9 w-9 text-muted-foreground" />
           <h3 className="mt-3 text-base font-bold text-foreground">
-            No analysis yet
+            No report yet
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
             Run your first scan to unlock CV insights and job matching.
@@ -327,7 +327,7 @@ function HighlightedSkillsCard({
         action={
           analysis ? (
             <span className="text-xs font-medium text-muted-foreground">
-              From latest CV analysis
+              From your latest scan
             </span>
           ) : null
         }
@@ -358,7 +358,7 @@ function HighlightedSkillsCard({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-          Run a CV analysis to highlight skills detected from your resume.
+          Run a scan to highlight skills found in your resume.
         </div>
       )}
     </DashboardCard>
@@ -486,7 +486,7 @@ function RoadmapPreview({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-          Run a CV analysis to generate a job-specific skill roadmap.
+          Run a scan to create a skill roadmap for your target role.
         </div>
       )}
     </DashboardCard>
@@ -511,7 +511,7 @@ function CareerGoalSummary({
           <p className="mt-1 text-sm text-muted-foreground">
             {analysis
               ? `Current target: ${analysis.jobContext.title}`
-              : "Run an analysis to connect your goal with a target role."}
+              : "Run a scan to connect your resume with a target role."}
           </p>
         </div>
       </div>
@@ -735,12 +735,12 @@ export function DashboardPage() {
             <div className="grid gap-3">
               <QuickAction
                 label="Analyze CV"
-                description="Upload or paste a CV and compare it with a target JD."
+              description="Upload or paste a CV and compare it with a job description."
                 icon={FileSearch}
                 onClick={() => navigate({ to: "/resume-optimizer" })}
               />
               <QuickAction
-                label="Match with JD"
+                label="Review latest match"
                 description="Review your latest score and skill gaps."
                 icon={BarChart3}
                 onClick={() =>
@@ -759,7 +759,7 @@ export function DashboardPage() {
               />
               <QuickAction
                 label="View scan history"
-                description="Compare prior reports and re-open results."
+                description="Compare past reports and reopen your next steps."
                 icon={History}
                 onClick={() => navigate({ to: "/scan-history" })}
               />
@@ -804,7 +804,7 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-muted/40 p-5 text-sm text-muted-foreground">
-                  Your analysis activity will appear here after the first scan.
+                  Your scan activity will appear here after your first report.
                 </div>
               )}
           </DashboardCard>

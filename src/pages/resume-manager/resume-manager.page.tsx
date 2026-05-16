@@ -158,7 +158,9 @@ export function ResumeManagerPage() {
       return Number.isNaN(timestamp) ? latest : Math.max(latest, timestamp);
     }, 0);
 
-    return latestTimestamp ? formatUploadDate(new Date(latestTimestamp).toISOString()) : "None";
+    return latestTimestamp
+      ? formatUploadDate(new Date(latestTimestamp).toISOString())
+      : "None";
   }, [cvs]);
   const latestJobByFilename = useMemo(() => {
     const jobMap = new Map<string, string>();
@@ -322,8 +324,8 @@ export function ResumeManagerPage() {
               Resume Manager
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Manage resume files, choose a base resume, and send the right CV
-              into job matching or analysis.
+              Manage your resume files, choose a base resume, and use the right
+              CV for each job search.
             </p>
           </div>
 
@@ -351,7 +353,7 @@ export function ResumeManagerPage() {
           <MetricCard
             label="Saved resumes"
             value={cvs.length}
-            note="Files available for CV analysis and job matching."
+            note="Files ready for resume scans and job matching."
             icon={FileText}
           />
           <MetricCard
@@ -360,7 +362,7 @@ export function ResumeManagerPage() {
             note={
               baseResume
                 ? "Used by default for job matching."
-                : "Choose a base resume for matching."
+                : "Choose the resume you want to match jobs with first."
             }
             icon={Star}
           />
@@ -385,7 +387,7 @@ export function ResumeManagerPage() {
                 Resume files
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Rename, preview, set base resume, or start matching jobs.
+                Rename, preview, choose a base resume, or find matching jobs.
               </p>
             </div>
 
@@ -416,7 +418,7 @@ export function ResumeManagerPage() {
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Loading...
+                Loading resumes...
               </div>
             </div>
           ) : error ? (
@@ -450,7 +452,7 @@ export function ResumeManagerPage() {
                         <th className="w-[88px] px-5 py-3">Base</th>
                         <th className="w-[280px] px-4 py-3">Resume</th>
                         <th className="px-4 py-3">Latest target job</th>
-                        <th className="w-[150px] px-4 py-3">Created</th>
+                        <th className="w-[150px] px-4 py-3">Uploaded</th>
                         <th className="w-[150px] px-4 py-3">Last Modified</th>
                         <th className="w-[150px] px-4 py-3 text-right">
                           Actions

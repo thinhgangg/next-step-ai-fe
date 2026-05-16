@@ -164,7 +164,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
           jobDescription:
             item.roadmapTotalWeeks && item.roadmapTotalWeeks > 0
               ? `Roadmap estimated at ${item.roadmapTotalWeeks} weeks.`
-              : `Analysis result #${item.analysisId} for job #${item.jobId}.`,
+              : "Completed match report.",
           scanDate,
           scanTimestamp,
         };
@@ -236,14 +236,14 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
       <section>
         <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
           <Sparkles className="h-3.5 w-3.5" />
-          Analysis timeline
+          Scan timeline
         </p>
         <h1 className="text-3xl font-black tracking-tight text-foreground">
           Scan History
         </h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Review past CV-to-job scans, compare match scores, and reopen reports
-          when you need the full recommendation.
+          Review past resume scans, compare match scores, and reopen reports
+          when you need your next steps.
         </p>
       </section>
 
@@ -251,7 +251,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
         <MetricCard
           label="Total scans"
           value={items.length}
-          note="Completed reports currently available in history."
+          note="Completed reports available here."
           icon={FileText}
         />
         <MetricCard
@@ -263,7 +263,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
         <MetricCard
           label="Average match"
           value={averageScore ? `${averageScore}%` : "--"}
-          note="Average score across loaded scan history."
+          note="Average score across your scans."
           icon={BarChart3}
         />
         <MetricCard
@@ -278,7 +278,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-foreground">
-              Analysis reports
+              Match reports
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Click any row to open the full match report.
@@ -391,7 +391,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Loading...
+                Loading scan history...
               </div>
             </div>
           ) : error ? (
@@ -497,8 +497,8 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                                 No scan history found
                               </p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                Try a different keyword or clear search to see
-                                all records.
+                                Try a different keyword or clear your search to
+                                see all reports.
                               </p>
                               <button
                                 type="button"
