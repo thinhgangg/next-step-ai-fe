@@ -2,6 +2,7 @@ import { useLazyQuery, useMutation, useQuery } from "@apollo/client/react";
 import { useState } from "react";
 import {
   ANALYZE_CV,
+  ANALYZE_CV_WITH_JD,
   CONFIRM_CV_UPLOAD,
   DELETE_CV,
   GET_PRESIGNED_URL,
@@ -166,6 +167,10 @@ interface AnalyzeCvResponse {
   analyzeCv: CvAnalysisResult;
 }
 
+interface AnalyzeCvWithJdResponse {
+  analyzeCvWithJd: CvAnalysisResult;
+}
+
 interface GetCvAnalysisResultResponse {
   getCvAnalysisResult: CvAnalysisResult;
 }
@@ -305,6 +310,42 @@ export function useUserCvs() {
     loading: query.loading,
     error: query.error,
     refetch: query.refetch,
+  };
+}
+
+export function useAnalyzeCvWithJd() {
+  const [analyzeCvWithJdMutation, state] =
+    useMutation<AnalyzeCvWithJdResponse>(ANALYZE_CV_WITH_JD);
+
+  const analyzeCvWithJd = async (
+    cvId: number,
+    input: {
+      jdText?: string | null;
+      jdFileBase64?: string | null;
+      jdFileName?: string | null;
+      jdContentType?: string | null;
+    },
+  ) => {
+    const { data } = await analyzeCvWithJdMutation({
+      variables: {
+        cvId,
+        jdText: input.jdText ?? null,
+        jdFileBase64: input.jdFileBase64 ?? null,
+        jdFileName: input.jdFileName ?? null,
+        jdContentType: input.jdContentType ?? null,
+      },
+    });
+
+    if (!data) {
+      throw new Error("Failed to analyze CV with JD");
+    }
+
+    return data.analyzeCvWithJd;
+  };
+
+  return {
+    analyzeCvWithJd,
+    isAnalyzingWithJd: state.loading,
   };
 }
 

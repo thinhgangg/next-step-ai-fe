@@ -24,7 +24,10 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/shared/ui/app-shell";
-import { getLatestAnalysisId } from "@/shared/config/latest-analysis";
+import {
+  getLatestAnalysisId,
+  getLatestAnalysisResult,
+} from "@/shared/config/latest-analysis";
 import {
   type CvAnalysisResult,
   useCvAnalysisResult,
@@ -1040,7 +1043,16 @@ function ReportState({
 
 export function MatchReportPage() {
   const analysisId = getLatestAnalysisId();
+  const savedAnalysis = getLatestAnalysisResult<CvAnalysisResult>();
   const { analysis, loading, error } = useCvAnalysisResult(analysisId);
+
+  if (!analysisId && savedAnalysis) {
+    return (
+      <AppShell fullWidth>
+        <MatchReportDashboard analysis={savedAnalysis} />
+      </AppShell>
+    );
+  }
 
   if (!analysisId) {
     return (

@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BriefcaseBusiness,
@@ -10,11 +10,14 @@ import {
 } from "lucide-react";
 import {
   useAnalyzeCv,
+  useAnalyzeCvWithJd,
   useUploadCv,
   useUserCvs,
 } from "@/features/cv/model/cv.model";
-import { useJobsCatalog } from "@/features/jobs/model/jobs.model";
-import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
+import {
+  setLatestAnalysisId,
+  setLatestAnalysisResult,
+} from "@/shared/config/latest-analysis";
 
 type NewScanSectionProps = {
   onScan?: () => void;
@@ -85,36 +88,24 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const [selectedSavedCvId, setSelectedSavedCvId] = useState<number | null>(
     attachedCvId,
   );
+  const [selectedJdFile, setSelectedJdFile] = useState<File | null>(null);
   const [selectedJdName, setSelectedJdName] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const scanMessageTimerRef = useRef<number | null>(null);
   const [jdMessage, setJdMessage] = useState<string | null>(null);
   const [jdError, setJdError] = useState<string | null>(null);
-  const deferredJobSearch = useDeferredValue(jdText.trim().slice(0, 160));
 
   const { uploadCv, isUploading } = useUploadCv();
   const { analyzeCv, isAnalyzing } = useAnalyzeCv();
+  const { analyzeCvWithJd, isAnalyzingWithJd } = useAnalyzeCvWithJd();
   const { cvs, loading: isLoadingCvs } = useUserCvs();
-  const { jobs, loading: isLoadingJobs } = useJobsCatalog({
-    search: deferredJobSearch || undefined,
-    location: undefined,
-    limit: 3,
-    offset: 0,
-    sortBy: "RELEVANCE",
-    dateRange: "ANY",
-    employmentType: "ALL",
-    experienceRange: "ALL",
-    skip: !deferredJobSearch,
-  });
 
-  const targetJob = jobs[0] ?? null;
-  const targetJobId = attachedJobId ?? targetJob?.jobId ?? null;
   const selectedSavedCv = useMemo(
     () => cvs.find((cv) => Number(cv.cvId) === selectedSavedCvId) ?? null,
     [cvs, selectedSavedCvId],
   );
-  const isBusy = isUploading || isAnalyzing;
+  const isBusy = isUploading || isAnalyzing || isAnalyzingWithJd;
   const hasResumeInput =
     (resumeInputMode === "paste" && resumeText.trim().length > 0) ||
     (resumeInputMode === "file" && selectedResumeFile !== null) ||
@@ -122,8 +113,8 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const hasJdInput =
     attachedJobId !== null ||
     jdText.trim().length > 0 ||
-    selectedJdName !== null;
-  const canScan = hasResumeInput && hasJdInput && targetJobId !== null;
+    selectedJdFile !== null;
+  const canScan = hasResumeInput && hasJdInput;
 
   const clearSelectedResume = () => {
     setSelectedResumeFile(null);
@@ -134,6 +125,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   };
 
   const clearSelectedJd = () => {
+    setSelectedJdFile(null);
     setSelectedJdName(null);
     setJdMessage(null);
     setJdError(null);
@@ -162,21 +154,19 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     if (!file) return;
 
     setSelectedJdName(file.name);
+    setSelectedJdFile(file);
     setJdError(null);
     setJdMessage("Job description selected.");
 
     try {
       const isTextFile =
         file.type.startsWith("text/") || /\.(txt|md)$/i.test(file.name);
-      const fallbackSearch = file.name
-        .replace(/\.[^.]+$/, "")
-        .replace(/[-_]/g, " ");
-      const text = isTextFile ? await file.text() : fallbackSearch;
+      const text = isTextFile ? await file.text() : "";
 
-      setJdText(text.trim().slice(0, 4000));
+      setJdText(text.trim());
       if (!isTextFile) {
         setJdMessage(
-          "File selected. Paste JD text instead if the matched role is not accurate.",
+          "JD file selected. It will be analyzed directly when you scan.",
         );
       }
     } catch {
@@ -188,6 +178,17 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
 
   const buildTextResumeFile = () =>
     new File([resumeText.trim()], "resume.txt", { type: "text/plain" });
+
+  const readFileAsBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || "");
+        resolve(result.includes(",") ? result.split(",")[1] : result);
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
 
   const stopScanProgressMessages = () => {
     if (scanMessageTimerRef.current !== null) {
@@ -216,7 +217,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   };
 
   const handleScan = async () => {
-    if (!canScan || isBusy || targetJobId === null) return;
+    if (!canScan || isBusy) return;
 
     try {
       setUploadError(null);
@@ -234,12 +235,24 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
         setSelectedResumeName(uploadedCv.fileName);
       }
 
-      const analysis = await analyzeCv(cvId, targetJobId);
+      const analysis =
+        attachedJobId !== null
+          ? await analyzeCv(cvId, attachedJobId)
+          : await analyzeCvWithJd(cvId, {
+              jdText: selectedJdFile ? null : jdText.trim() || null,
+              jdFileBase64: selectedJdFile
+                ? await readFileAsBase64(selectedJdFile)
+                : null,
+              jdFileName: selectedJdFile?.name ?? null,
+              jdContentType: selectedJdFile?.type || null,
+            });
 
       setUploadMessage("Preparing your match report...");
 
       if (analysis.analysisResultId) {
         setLatestAnalysisId(analysis.analysisResultId);
+      } else {
+        setLatestAnalysisResult(analysis);
       }
 
       onScan?.();
@@ -562,6 +575,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     value={jdText}
                     onChange={(event) => {
                       setJdText(event.target.value);
+                      setSelectedJdFile(null);
                       setSelectedJdName(null);
                       setJdMessage(null);
                       setJdError(null);
@@ -571,27 +585,6 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   />
                 </div>
               )}
-
-              {attachedJobId === null && isLoadingJobs ? (
-                <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  Finding the closest target role...
-                </p>
-              ) : attachedJobId === null && targetJob ? (
-                <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm">
-                  <p className="font-medium text-primary">
-                    Matched target role
-                  </p>
-                  <p className="mt-1 line-clamp-1 text-foreground">
-                    {targetJob.title} - {targetJob.company.name}
-                  </p>
-                </div>
-              ) : attachedJobId === null && hasJdInput ? (
-                <p className="text-sm text-muted-foreground">
-                  No matching target role found yet. Try a clearer JD title or
-                  paste more JD text.
-                </p>
-              ) : null}
 
               {jdError ? (
                 <p className="text-sm text-destructive">{jdError}</p>

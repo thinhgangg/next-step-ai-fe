@@ -139,6 +139,27 @@ export const ANALYZE_CV = gql`
   ${CV_ANALYSIS_FIELDS}
 `;
 
+export const ANALYZE_CV_WITH_JD = gql`
+  mutation AnalyzeCvWithJd(
+    $cvId: Int!
+    $jdText: String
+    $jdFileBase64: String
+    $jdFileName: String
+    $jdContentType: String
+  ) {
+    analyzeCvWithJd(
+      cvId: $cvId
+      jdText: $jdText
+      jdFileBase64: $jdFileBase64
+      jdFileName: $jdFileName
+      jdContentType: $jdContentType
+    ) {
+      ...CvAnalysisFields
+    }
+  }
+  ${CV_ANALYSIS_FIELDS}
+`;
+
 export const DELETE_CV = gql`
   mutation DeleteCv($cvId: Int!) {
     deleteCv(cvId: $cvId)
