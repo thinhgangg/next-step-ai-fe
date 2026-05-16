@@ -1,4 +1,4 @@
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BriefcaseBusiness,
@@ -17,6 +17,16 @@ type NewScanSectionProps = {
 };
 
 type InputMode = "file" | "paste";
+
+const scanProgressMessages = [
+  "Uploading resume...",
+  "Reading resume content...",
+  "Analyzing job requirements...",
+  "Comparing your resume with this job...",
+  "Finding matched and missing skills...",
+  "Building your learning roadmap...",
+  "Preparing your match report...",
+];
 
 export function NewScanSection({ onScan }: NewScanSectionProps) {
   const navigate = useNavigate();
@@ -51,6 +61,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const [selectedJdName, setSelectedJdName] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const scanMessageTimerRef = useRef<number | null>(null);
   const [jdMessage, setJdMessage] = useState<string | null>(null);
   const [jdError, setJdError] = useState<string | null>(null);
   const deferredJobSearch = useDeferredValue(jdText.trim().slice(0, 160));
@@ -75,7 +86,9 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const hasResumeInput =
     resumeText.trim().length > 0 || selectedResumeFile !== null;
   const hasJdInput =
-    attachedJobId !== null || jdText.trim().length > 0 || selectedJdName !== null;
+    attachedJobId !== null ||
+    jdText.trim().length > 0 ||
+    selectedJdName !== null;
   const canScan = hasResumeInput && hasJdInput && targetJobId !== null;
 
   const clearSelectedResume = () => {
@@ -92,7 +105,9 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     setJdText("");
   };
 
-  const handleResumeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleResumeFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -138,20 +153,48 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const buildTextResumeFile = () =>
     new File([resumeText.trim()], "resume.txt", { type: "text/plain" });
 
+  const stopScanProgressMessages = () => {
+    if (scanMessageTimerRef.current !== null) {
+      window.clearInterval(scanMessageTimerRef.current);
+      scanMessageTimerRef.current = null;
+    }
+  };
+
+  const startScanProgressMessages = () => {
+    stopScanProgressMessages();
+
+    let messageIndex = 0;
+    setUploadMessage(scanProgressMessages[messageIndex]);
+
+    scanMessageTimerRef.current = window.setInterval(() => {
+      messageIndex = Math.min(
+        messageIndex + 1,
+        scanProgressMessages.length - 1,
+      );
+      setUploadMessage(scanProgressMessages[messageIndex]);
+
+      if (messageIndex === scanProgressMessages.length - 1) {
+        stopScanProgressMessages();
+      }
+    }, 3000);
+  };
+
   const handleScan = async () => {
     if (!canScan || isBusy || targetJobId === null) return;
 
     try {
       setUploadError(null);
-      setUploadMessage("Uploading resume...");
+      startScanProgressMessages();
 
       const fileToUpload = selectedResumeFile ?? buildTextResumeFile();
       const uploadedCv = await uploadCv(fileToUpload);
 
       setSelectedResumeName(uploadedCv.fileName);
-      setUploadMessage("Analyzing match...");
 
       const analysis = await analyzeCv(Number(uploadedCv.cvId), targetJobId);
+
+      setUploadMessage("Preparing your match report...");
+
       if (analysis.analysisResultId) {
         setLatestAnalysisId(analysis.analysisResultId);
       }
@@ -161,7 +204,11 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     } catch (error) {
       console.error("Analyze error:", error);
       setUploadMessage(null);
-      setUploadError("Scan failed. Please try again with another resume or JD.");
+      setUploadError(
+        "Scan failed. Please try again with another resume or JD.",
+      );
+    } finally {
+      stopScanProgressMessages();
     }
   };
 
@@ -278,7 +325,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
               </button>
 
               {uploadMessage ? (
-                <p className="text-sm text-primary">{uploadMessage}</p>
+                <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm font-medium text-primary">
+                  {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  <span>{uploadMessage}</span>
+                </div>
               ) : null}
 
               {uploadError ? (
@@ -413,7 +463,9 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                 </p>
               ) : attachedJobId === null && targetJob ? (
                 <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5 text-sm">
-                  <p className="font-medium text-primary">Matched target role</p>
+                  <p className="font-medium text-primary">
+                    Matched target role
+                  </p>
                   <p className="mt-1 line-clamp-1 text-foreground">
                     {targetJob.title} - {targetJob.company.name}
                   </p>
