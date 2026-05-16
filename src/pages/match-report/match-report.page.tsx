@@ -877,129 +877,124 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-12">
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <Card className="overflow-hidden p-6 md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div>
-              <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                Match Report
-              </p>
-              <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
-                {analysis.jobContext.title}
-              </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base md:leading-7">
-                {analysis.aiReview?.summary ??
-                  "NextStepAI analyzed this CV against the selected job and prepared a focused improvement plan."}
-              </p>
+    <div className="mx-auto max-w-[1480px] space-y-5">
+      <Card className="overflow-hidden p-6 md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+          <div>
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Match Report
+            </p>
+            <h1 className="text-3xl font-black tracking-tight text-foreground md:text-5xl">
+              {analysis.jobContext.title}
+            </h1>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base md:leading-7">
+              {analysis.aiReview?.summary ??
+                "NextStepAI analyzed this CV against the selected job and prepared a focused improvement plan."}
+            </p>
 
-              <div className="mt-6">
-                <ScoreCircle
-                  score={score}
-                  verdict={analysis.aiReview?.verdict}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SummaryMetric
-                label="Matched Skills"
-                value={analysis.jobMatch.matchedSkills.length}
-                note="Skills found in CV and JD"
-                icon={CheckCircle2}
-                tone="success"
-              />
-              <SummaryMetric
-                label="Missing Skills"
-                value={analysis.jobMatch.missingSkills.length}
-                note={
-                  visibleMissingSkills.length
-                    ? visibleMissingSkills.slice(0, 3).join(", ")
-                    : "No major missing skills"
-                }
-                icon={AlertTriangle}
-                tone={
-                  analysis.jobMatch.missingSkills.length ? "danger" : "success"
-                }
-              />
-              <SummaryMetric
-                label="Roadmap"
-                value={formatWeeks(analysis.roadmap.totalWeeks)}
-                note={analysis.roadmap.difficultyLevel || "Personalized plan"}
-                icon={BookOpen}
-                tone="info"
-              />
-              <SummaryMetric
-                label="Location"
-                value={analysis.jobContext.jobLocation || "Not specified"}
-                note={
-                  analysis.jobContext.jobIsRemote
-                    ? "Remote available"
-                    : "On-site or hybrid"
-                }
-                icon={MapPin}
-                tone="neutral"
-              />
+            <div className="mt-6">
+              <ScoreCircle score={score} verdict={analysis.aiReview?.verdict} />
             </div>
           </div>
-        </Card>
 
-        <div className="sticky top-0 z-10 -mx-4 border-y border-border bg-background/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-          <div className="flex flex-wrap gap-2">
-            <TabButton
-              active={activeTab === "overview"}
-              onClick={() => setActiveTab("overview")}
-            >
-              Overview
-            </TabButton>
-            <TabButton
-              active={activeTab === "skills"}
-              onClick={() => setActiveTab("skills")}
-            >
-              Skills & Gaps
-            </TabButton>
-            <TabButton
-              active={activeTab === "roadmap"}
-              onClick={() => setActiveTab("roadmap")}
-            >
-              Roadmap
-            </TabButton>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SummaryMetric
+              label="Matched Skills"
+              value={analysis.jobMatch.matchedSkills.length}
+              note="Skills found in CV and JD"
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <SummaryMetric
+              label="Missing Skills"
+              value={analysis.jobMatch.missingSkills.length}
+              note={
+                visibleMissingSkills.length
+                  ? visibleMissingSkills.slice(0, 3).join(", ")
+                  : "No major missing skills"
+              }
+              icon={AlertTriangle}
+              tone={
+                analysis.jobMatch.missingSkills.length ? "danger" : "success"
+              }
+            />
+            <SummaryMetric
+              label="Roadmap"
+              value={formatWeeks(analysis.roadmap.totalWeeks)}
+              note={analysis.roadmap.difficultyLevel || "Personalized plan"}
+              icon={BookOpen}
+              tone="info"
+            />
+            <SummaryMetric
+              label="Location"
+              value={analysis.jobContext.jobLocation || "Not specified"}
+              note={
+                analysis.jobContext.jobIsRemote
+                  ? "Remote available"
+                  : "On-site or hybrid"
+              }
+              icon={MapPin}
+              tone="neutral"
+            />
           </div>
         </div>
+      </Card>
 
-        {activeTab === "overview" ? <OverviewTab analysis={analysis} /> : null}
-        {activeTab === "skills" ? <SkillsTab analysis={analysis} /> : null}
-        {activeTab === "roadmap" ? <RoadmapTab analysis={analysis} /> : null}
-
-        <FinalRecommendation analysis={analysis} />
-
-        <Card className="p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <BriefcaseBusiness className="h-4 w-4 text-primary" />
-                Source job
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                CV level: {analysis.extractedProfile.cvLevel || "Unknown"} ·
-                Target level: {analysis.jobContext.jobLevel || "Unknown"}
-              </p>
-            </div>
-            {analysis.jobContext.sourceUrl ? (
-              <a
-                href={analysis.jobContext.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex w-fit items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/15"
-              >
-                View Job Description
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            ) : null}
-          </div>
-        </Card>
+      <div className="sticky top-0 z-10 -mx-4 border-y border-border bg-background/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
+        <div className="flex flex-wrap gap-2">
+          <TabButton
+            active={activeTab === "overview"}
+            onClick={() => setActiveTab("overview")}
+          >
+            Overview
+          </TabButton>
+          <TabButton
+            active={activeTab === "skills"}
+            onClick={() => setActiveTab("skills")}
+          >
+            Skills & Gaps
+          </TabButton>
+          <TabButton
+            active={activeTab === "roadmap"}
+            onClick={() => setActiveTab("roadmap")}
+          >
+            Roadmap
+          </TabButton>
+        </div>
       </div>
+
+      {activeTab === "overview" ? <OverviewTab analysis={analysis} /> : null}
+      {activeTab === "skills" ? <SkillsTab analysis={analysis} /> : null}
+      {activeTab === "roadmap" ? <RoadmapTab analysis={analysis} /> : null}
+
+      <FinalRecommendation analysis={analysis} />
+
+      <Card className="p-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <BriefcaseBusiness className="h-4 w-4 text-primary" />
+              Source job
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              CV level: {analysis.extractedProfile.cvLevel || "Unknown"} ·
+              Target level: {analysis.jobContext.jobLevel || "Unknown"}
+            </p>
+          </div>
+          {analysis.jobContext.sourceUrl ? (
+            <a
+              href={analysis.jobContext.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/15"
+            >
+              View Job Description
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : null}
+        </div>
+      </Card>
     </div>
   );
 }
