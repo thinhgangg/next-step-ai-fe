@@ -339,8 +339,20 @@ export function JobsBrowser({
 }: JobsBrowserProps) {
   const navigate = useNavigate();
   const { user } = useSession();
-  const [hasTouchedSearchMode, setHasTouchedSearchMode] = useState(false);
-  const [searchMode, setSearchMode] = useState<SearchMode>("keyword");
+  const initialSearchParams = new URLSearchParams(window.location.search);
+  const initialCvIdValue = Number(initialSearchParams.get("cvId"));
+  const initialCvId =
+    Number.isFinite(initialCvIdValue) && initialCvIdValue > 0
+      ? initialCvIdValue
+      : null;
+  const initialMode =
+    initialSearchParams.get("mode") === "resume" || initialCvId !== null
+      ? "resume"
+      : "keyword";
+  const [hasTouchedSearchMode, setHasTouchedSearchMode] = useState(
+    initialMode === "resume" || initialCvId !== null,
+  );
+  const [searchMode, setSearchMode] = useState<SearchMode>(initialMode);
   const [sortBy, setSortBy] = useState<JobSortOption>("RELEVANCE");
   const [dateRange, setDateRange] = useState<JobDateRangeOption>("ANY");
   const [employmentType, setEmploymentType] =
@@ -354,7 +366,7 @@ export function JobsBrowser({
   const [appliedLocation, setAppliedLocation] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-  const [selectedCvId, setSelectedCvId] = useState<number | null>(null);
+  const [selectedCvId, setSelectedCvId] = useState<number | null>(initialCvId);
 
   const { cvs, loading: isLoadingCvs } = useUserCvs();
   const cvOptions = useMemo(
@@ -877,6 +889,10 @@ export function JobsBrowser({
                           jobId: selectedJob.jobId,
                           jobTitle: selectedJob.title,
                           company: selectedJob.company.name,
+                          ...(effectiveSearchMode === "resume" &&
+                          effectiveSelectedCvId !== null
+                            ? { cvId: effectiveSelectedCvId }
+                            : {}),
                         },
                       })
                     }

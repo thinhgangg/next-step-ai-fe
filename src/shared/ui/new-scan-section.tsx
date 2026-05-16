@@ -1,4 +1,4 @@
-import { useDeferredValue, useRef, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BriefcaseBusiness,
@@ -8,7 +8,11 @@ import {
   Loader2,
   X,
 } from "lucide-react";
-import { useAnalyzeCv, useUploadCv } from "@/features/cv/model/cv.model";
+import {
+  useAnalyzeCv,
+  useUploadCv,
+  useUserCvs,
+} from "@/features/cv/model/cv.model";
 import { useJobsCatalog } from "@/features/jobs/model/jobs.model";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
 
@@ -17,6 +21,7 @@ type NewScanSectionProps = {
 };
 
 type InputMode = "file" | "paste";
+type ResumeInputMode = InputMode | "saved";
 
 const scanProgressMessages = [
   "Uploading resume...",
@@ -27,6 +32,19 @@ const scanProgressMessages = [
   "Building your learning roadmap...",
   "Preparing your match report...",
 ];
+
+function formatUploadDate(value?: string | null) {
+  if (!value) return "Recently uploaded";
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "Recently uploaded";
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
 
 export function NewScanSection({ onScan }: NewScanSectionProps) {
   const navigate = useNavigate();
@@ -48,7 +66,13 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       : null;
   const attachedJobTitle = attachedJobParams.get("jobTitle") ?? "";
   const attachedCompany = attachedJobParams.get("company") ?? "";
-  const [resumeInputMode, setResumeInputMode] = useState<InputMode>("file");
+  const attachedCvIdValue = Number(attachedJobParams.get("cvId"));
+  const attachedCvId =
+    Number.isFinite(attachedCvIdValue) && attachedCvIdValue > 0
+      ? attachedCvIdValue
+      : null;
+  const [resumeInputMode, setResumeInputMode] =
+    useState<ResumeInputMode>(attachedCvId !== null ? "saved" : "file");
   const [jdInputMode, setJdInputMode] = useState<InputMode>("file");
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
@@ -57,6 +81,9 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   );
   const [selectedResumeName, setSelectedResumeName] = useState<string | null>(
     null,
+  );
+  const [selectedSavedCvId, setSelectedSavedCvId] = useState<number | null>(
+    attachedCvId,
   );
   const [selectedJdName, setSelectedJdName] = useState<string | null>(null);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
@@ -68,6 +95,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
 
   const { uploadCv, isUploading } = useUploadCv();
   const { analyzeCv, isAnalyzing } = useAnalyzeCv();
+  const { cvs, loading: isLoadingCvs } = useUserCvs();
   const { jobs, loading: isLoadingJobs } = useJobsCatalog({
     search: deferredJobSearch || undefined,
     location: undefined,
@@ -82,9 +110,15 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
 
   const targetJob = jobs[0] ?? null;
   const targetJobId = attachedJobId ?? targetJob?.jobId ?? null;
+  const selectedSavedCv = useMemo(
+    () => cvs.find((cv) => Number(cv.cvId) === selectedSavedCvId) ?? null,
+    [cvs, selectedSavedCvId],
+  );
   const isBusy = isUploading || isAnalyzing;
   const hasResumeInput =
-    resumeText.trim().length > 0 || selectedResumeFile !== null;
+    (resumeInputMode === "paste" && resumeText.trim().length > 0) ||
+    (resumeInputMode === "file" && selectedResumeFile !== null) ||
+    (resumeInputMode === "saved" && selectedSavedCv !== null);
   const hasJdInput =
     attachedJobId !== null ||
     jdText.trim().length > 0 ||
@@ -94,6 +128,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   const clearSelectedResume = () => {
     setSelectedResumeFile(null);
     setSelectedResumeName(null);
+    setSelectedSavedCvId(null);
     setUploadMessage(null);
     setUploadError(null);
   };
@@ -113,6 +148,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
 
     setSelectedResumeFile(file);
     setSelectedResumeName(file.name);
+    setSelectedSavedCvId(null);
     setResumeText("");
     setUploadError(null);
     setUploadMessage("Resume selected.");
@@ -186,12 +222,19 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       setUploadError(null);
       startScanProgressMessages();
 
-      const fileToUpload = selectedResumeFile ?? buildTextResumeFile();
-      const uploadedCv = await uploadCv(fileToUpload);
+      let cvId = resumeInputMode === "saved" ? selectedSavedCvId : null;
 
-      setSelectedResumeName(uploadedCv.fileName);
+      if (cvId === null) {
+        const fileToUpload =
+          resumeInputMode === "file" && selectedResumeFile
+            ? selectedResumeFile
+            : buildTextResumeFile();
+        const uploadedCv = await uploadCv(fileToUpload);
+        cvId = Number(uploadedCv.cvId);
+        setSelectedResumeName(uploadedCv.fileName);
+      }
 
-      const analysis = await analyzeCv(Number(uploadedCv.cvId), targetJobId);
+      const analysis = await analyzeCv(cvId, targetJobId);
 
       setUploadMessage("Preparing your match report...");
 
@@ -240,17 +283,34 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       <section className="bg-card p-5">
         <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background/30">
-            <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
-              <FileText className="h-4 w-4 text-primary" />
-              <label className="text-sm font-semibold text-foreground">
-                Resume
-              </label>
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <label className="text-sm font-semibold text-foreground">
+                  Resume
+                </label>
+              </div>
+              <select
+                value={resumeInputMode}
+                disabled={isBusy}
+                onChange={(event) => {
+                  setResumeInputMode(event.target.value as ResumeInputMode);
+                  setUploadError(null);
+                  setUploadMessage(null);
+                }}
+                className="h-8 max-w-[170px] rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition-colors hover:border-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+                aria-label="Choose resume input mode"
+              >
+                <option value="file">Upload file</option>
+                <option value="saved">Choose saved CV</option>
+                <option value="paste">Paste text</option>
+              </select>
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4">
               {resumeInputMode === "file" ? (
                 selectedResumeName ? (
-                  <div className="relative flex min-h-[212px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-5 py-8 text-center">
+                  <div className="relative flex h-[212px] w-full flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5 pr-12 text-left">
                     <button
                       type="button"
                       onClick={clearSelectedResume}
@@ -259,18 +319,18 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
+                    <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-bold text-primary">
                       Resume selected
                     </span>
-                    <span className="max-w-[280px] break-words text-sm text-foreground">
+                    <span className="mt-2 max-w-full break-words text-sm font-medium text-foreground">
                       {selectedResumeName}
                     </span>
                   </div>
                 ) : (
-                  <label className="flex min-h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
+                  <label className="flex h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
                     {isBusy ? (
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     ) : (
@@ -292,8 +352,84 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     />
                   </label>
                 )
+              ) : resumeInputMode === "saved" ? (
+                selectedSavedCv ? (
+                  <div className="relative flex h-[212px] w-full flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5 pr-12 text-left">
+                    <button
+                      type="button"
+                      onClick={clearSelectedResume}
+                      className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
+                      aria-label="Remove selected saved CV"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
+                      <CheckCircle2 className="h-5 w-5" />
+                    </span>
+                    <p className="text-sm font-bold text-primary">
+                      Saved CV selected
+                    </p>
+                    <h3 className="mt-2 line-clamp-2 break-words text-lg font-bold text-foreground">
+                      {selectedSavedCv.fileName}
+                    </h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Uploaded {formatUploadDate(selectedSavedCv.uploadedAt)}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="h-[212px] rounded-xl border border-border bg-background/70 p-3">
+                    {isLoadingCvs ? (
+                      <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        Loading saved CVs...
+                      </div>
+                    ) : cvs.length > 0 ? (
+                      <div className="h-full space-y-2 overflow-y-auto pr-1">
+                        {cvs.map((cv) => (
+                          <button
+                            key={cv.cvId}
+                            type="button"
+                            disabled={isBusy}
+                            onClick={() => {
+                              setSelectedSavedCvId(Number(cv.cvId));
+                              setSelectedResumeFile(null);
+                              setSelectedResumeName(null);
+                              setResumeText("");
+                              setUploadError(null);
+                              setUploadMessage("Saved CV selected.");
+                            }}
+                            className="flex w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-70"
+                          >
+                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <FileText className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-semibold text-foreground">
+                                {cv.fileName}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">
+                                Uploaded {formatUploadDate(cv.uploadedAt)}
+                              </span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm font-bold text-foreground">
+                          No saved CVs yet
+                        </span>
+                        <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
+                          Upload a resume file first, then it will appear here
+                          for later scans.
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
               ) : (
-                <div className="min-h-[212px] rounded-xl border border-border bg-background/70 p-4">
+                <div className="h-[212px] rounded-xl border border-border bg-background/70 p-4">
                   <textarea
                     value={resumeText}
                     onChange={(event) => {
@@ -303,26 +439,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       }
                     }}
                     placeholder="Paste resume text here."
-                    className="h-full min-h-[180px] w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    className="h-full w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setResumeInputMode((mode) =>
-                    mode === "file" ? "paste" : "file",
-                  );
-                  setUploadError(null);
-                  setUploadMessage(null);
-                }}
-                className="text-left text-sm font-semibold text-primary hover:text-primary/80"
-              >
-                {resumeInputMode === "file"
-                  ? "Or paste resume text"
-                  : "Use resume file instead"}
-              </button>
 
               {uploadMessage ? (
                 <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm font-medium text-primary">
@@ -338,16 +458,34 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
           </div>
 
           <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background/30">
-            <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
-              <BriefcaseBusiness className="h-4 w-4 text-primary" />
-              <label className="text-sm font-semibold text-foreground">
-                Target job
-              </label>
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+              <div className="flex items-center gap-2">
+                <BriefcaseBusiness className="h-4 w-4 text-primary" />
+                <label className="text-sm font-semibold text-foreground">
+                  Target job
+                </label>
+              </div>
+              {attachedJobId === null ? (
+                <select
+                  value={jdInputMode}
+                  disabled={isBusy}
+                  onChange={(event) => {
+                    setJdInputMode(event.target.value as InputMode);
+                    setJdError(null);
+                    setJdMessage(null);
+                  }}
+                  className="h-8 max-w-[150px] rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition-colors hover:border-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+                  aria-label="Choose target job input mode"
+                >
+                  <option value="file">Upload file</option>
+                  <option value="paste">Paste text</option>
+                </select>
+              ) : null}
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4">
               {attachedJobId !== null ? (
-                <div className="relative flex min-h-[212px] flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5">
+                <div className="relative flex h-[212px] flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5 pr-12">
                   <button
                     type="button"
                     onClick={clearAttachedJob}
@@ -356,13 +494,13 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   >
                     <X className="h-4 w-4" />
                   </button>
-                  <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <p className="text-sm font-bold text-primary">
                     Target job attached
                   </p>
-                  <h3 className="mt-2 text-lg font-bold text-foreground">
+                  <h3 className="mt-2 line-clamp-2 text-lg font-bold text-foreground">
                     {attachedJobTitle || "Selected job"}
                   </h3>
                   {attachedCompany ? (
@@ -370,14 +508,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       {attachedCompany}
                     </p>
                   ) : null}
-                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                    Upload your CV on the left, then run the scan. You do not
-                    need to upload a JD again.
-                  </p>
                 </div>
               ) : jdInputMode === "file" ? (
                 selectedJdName ? (
-                  <div className="relative flex min-h-[212px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-5 py-8 text-center">
+                  <div className="relative flex h-[212px] w-full flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5 pr-12 text-left">
                     <button
                       type="button"
                       onClick={clearSelectedJd}
@@ -386,23 +520,23 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
+                    <span className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-card text-primary">
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-bold text-primary">
                       JD selected
                     </span>
-                    <span className="max-w-[280px] break-words text-sm text-foreground">
+                    <span className="mt-2 max-w-full break-words text-sm font-medium text-foreground">
                       {selectedJdName}
                     </span>
                     {jdMessage ? (
-                      <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
+                      <span className="mt-2 text-xs leading-5 text-muted-foreground">
                         {jdMessage}
                       </span>
                     ) : null}
                   </div>
                 ) : (
-                  <label className="flex min-h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
+                  <label className="flex h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
                     <CloudUpload className="h-8 w-8 text-primary" />
                     <span className="text-sm font-bold text-foreground">
                       Upload JD file
@@ -423,7 +557,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   </label>
                 )
               ) : (
-                <div className="min-h-[212px] rounded-xl border border-border bg-background/70 p-4">
+                <div className="h-[212px] rounded-xl border border-border bg-background/70 p-4">
                   <textarea
                     value={jdText}
                     onChange={(event) => {
@@ -433,28 +567,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       setJdError(null);
                     }}
                     placeholder="Paste job description text or search keywords."
-                    className="h-full min-h-[180px] w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    className="h-full w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 </div>
               )}
-
-              {attachedJobId === null ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setJdInputMode((mode) =>
-                      mode === "file" ? "paste" : "file",
-                    );
-                    setJdError(null);
-                    setJdMessage(null);
-                  }}
-                  className="text-left text-sm font-semibold text-primary hover:text-primary/80"
-                >
-                  {jdInputMode === "file"
-                    ? "Or paste JD text"
-                    : "Use JD file instead"}
-                </button>
-              ) : null}
 
               {attachedJobId === null && isLoadingJobs ? (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">

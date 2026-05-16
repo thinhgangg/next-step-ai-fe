@@ -219,9 +219,14 @@ export function ResumeManagerPage() {
     }
   };
 
-  const handleMatchJobs = async (cv: UploadedCv) => {
-    await handleSetBase(cv, { allowUnset: false });
-    navigate({ to: "/jobs" });
+  const handleMatchJobs = (cv: UploadedCv) => {
+    navigate({
+      to: "/jobs",
+      search: {
+        mode: "resume",
+        cvId: Number(cv.cvId),
+      },
+    });
   };
 
   const handleViewCv = async (cv: UploadedCv) => {
@@ -541,7 +546,7 @@ export function ResumeManagerPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => void handleMatchJobs(cv)}
+                                onClick={() => handleMatchJobs(cv)}
                                 disabled={isSettingBaseCv}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                                 title="Match jobs"
