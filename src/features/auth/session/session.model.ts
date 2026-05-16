@@ -12,6 +12,38 @@ type CurrentUser = {
   email: string;
   avatar?: string | null;
   baseCvId?: number | null;
+  currentRole?: string | null;
+  location?: string | null;
+  experienceYears?: number | null;
+  targetSalaryMin?: number | null;
+  targetSalaryMax?: number | null;
+  phone?: string | null;
+  githubUrl?: string | null;
+  linkedinUrl?: string | null;
+  portfolioUrl?: string | null;
+  skills?: string[] | null;
+  suggestedImprovements?: {
+    id: string;
+    title: string;
+    status: "done" | "warning" | "todo";
+  }[] | null;
+  experiences?: {
+    id: string;
+    title: string;
+    organization: string;
+    type: "WORK" | "INTERNSHIP" | "PROJECT" | "FREELANCE" | "EDUCATION";
+    startDate?: string | null;
+    endDate?: string | null;
+    isCurrent?: boolean | null;
+    description?: string | null;
+    technologies?: string[] | null;
+  }[] | null;
+  careerGoals?: {
+    targetRole?: string | null;
+    preferredLocation?: string | null;
+    workStyle?: "ONSITE" | "HYBRID" | "REMOTE" | "HYBRID_OR_REMOTE" | null;
+    goal?: string | null;
+  } | null;
 };
 
 export function useSession() {

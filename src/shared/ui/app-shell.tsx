@@ -18,6 +18,7 @@ import {
 import { BRAND } from "@/shared/config/brand";
 import { storage } from "@/shared/lib/storage";
 import { useSession } from "@/features/auth/session/session.model";
+import { useProfilePreferences } from "@/features/profile/profile-preferences.model";
 
 type NavItem = {
   id: string;
@@ -86,12 +87,13 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
   });
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { logout, user, isSessionLoading } = useSession();
+  const { profile } = useProfilePreferences(user);
   const location = useLocation();
   const navigate = useNavigate();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const displayName = user?.name?.trim() || "";
-  const displayEmail = user?.email?.trim() || "";
+  const displayName = profile.fullName;
+  const displayEmail = profile.email;
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
 
   useEffect(() => {

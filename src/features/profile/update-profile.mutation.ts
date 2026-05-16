@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
-export const ME_QUERY = gql`
-  query Me {
-    me {
+export const UPDATE_USER_PROFILE_MUTATION = gql`
+  mutation UpdateUserProfile($input: UpdateUserProfileInput!) {
+    updateUserProfile(input: $input) {
       userId
       name
       email
@@ -40,6 +40,24 @@ export const ME_QUERY = gql`
         workStyle
         goal
       }
+    }
+  }
+`;
+
+export const GET_AVATAR_UPLOAD_URL_MUTATION = gql`
+  mutation GetAvatarUploadUrl($fileName: String!) {
+    getAvatarUploadUrl(fileName: $fileName) {
+      uploadUrl
+      fileKey
+    }
+  }
+`;
+
+export const CONFIRM_AVATAR_UPLOAD_MUTATION = gql`
+  mutation ConfirmAvatarUpload($fileKey: String!) {
+    confirmAvatarUpload(fileKey: $fileKey) {
+      userId
+      avatar
     }
   }
 `;
