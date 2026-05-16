@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
 import {
   BriefcaseBusiness,
-  Camera,
+  ChevronDown,
   Link as LinkIcon,
   Plus,
   Save,
@@ -20,6 +20,7 @@ import {
   type ProfilePreferences,
   useProfilePreferences,
 } from "@/features/profile/profile-preferences.model";
+import { useAvatarFile } from "@/features/profile/avatar.model";
 import {
   CONFIRM_AVATAR_UPLOAD_MUTATION,
   GET_AVATAR_UPLOAD_URL_MUTATION,
@@ -138,12 +139,16 @@ function SectionHeader({
 export function SettingsPage() {
   const { user } = useSession();
   const { profile, setProfile } = useProfilePreferences(user);
+  const { avatarSrc } = useAvatarFile(user?.avatar);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [skillSearch, setSkillSearch] = useState("");
   const [avatarUploadMessage, setAvatarUploadMessage] = useState<string | null>(
     null,
   );
+  const [expandedExperienceIds, setExpandedExperienceIds] = useState<
+    Set<string>
+  >(() => new Set());
   const { data: skillsData, loading: areSkillsLoading } =
     useQuery<GetAllSkillsResponse>(GET_ALL_SKILLS_QUERY);
 
@@ -322,6 +327,9 @@ export function SettingsPage() {
     };
 
     updateProfileField("experiences", [...profile.experiences, nextExperience]);
+    setExpandedExperienceIds((current) =>
+      new Set(current).add(nextExperience.id),
+    );
   };
 
   const updateExperience = <K extends keyof ProfileExperience>(
@@ -342,6 +350,20 @@ export function SettingsPage() {
       "experiences",
       profile.experiences.filter((experience) => experience.id !== id),
     );
+  };
+
+  const toggleExperience = (id: string) => {
+    setExpandedExperienceIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+
+      return next;
+    });
   };
 
   const uploadAvatar = async (file: File) => {
@@ -408,7 +430,8 @@ export function SettingsPage() {
               Settings
             </h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Update only the profile fields currently stored by the backend.
+              Manage the information used to personalize your job matches and
+              recommendations.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -434,7 +457,7 @@ export function SettingsPage() {
               <SectionHeader
                 icon={User}
                 title="Account information"
-                description="Name and contact fields saved on the user record."
+                description="Your basic profile and contact information."
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
@@ -468,7 +491,7 @@ export function SettingsPage() {
               <SectionHeader
                 icon={BriefcaseBusiness}
                 title="Career information"
-                description="Role, experience, salary expectation, and work style."
+                description="Your role, experience level, salary expectation, and work style."
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
@@ -527,7 +550,7 @@ export function SettingsPage() {
               <SectionHeader
                 icon={LinkIcon}
                 title="Links and skills"
-                description="URLs and selected skills saved on the profile."
+                description="Add your professional links and key skills."
               />
               <div className="grid gap-4 md:grid-cols-3">
                 <TextInput
@@ -614,7 +637,7 @@ export function SettingsPage() {
               <SectionHeader
                 icon={Target}
                 title="Career goals"
-                description="Fields stored in the careerGoals object."
+                description="Tell us what roles, locations, and goals you are aiming for."
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
@@ -653,7 +676,7 @@ export function SettingsPage() {
                 <SectionHeader
                   icon={BriefcaseBusiness}
                   title="Experiences"
-                  description="Work, internship, project, freelance, and education records."
+                  description="Add work, internship, project, freelance, or education experience."
                 />
                 <button
                   type="button"
@@ -667,146 +690,196 @@ export function SettingsPage() {
 
               {profile.experiences.length ? (
                 <div className="space-y-4">
-                  {profile.experiences.map((experience, index) => (
-                    <div
-                      key={experience.id}
-                      className="rounded-xl border border-border bg-background/50 p-4"
-                    >
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <h3 className="text-sm font-bold text-foreground">
-                          Experience {index + 1}
-                        </h3>
+                  {profile.experiences.map((experience, index) => {
+                    const isExpanded = expandedExperienceIds.has(experience.id);
+
+                    return (
+                      <div
+                        key={experience.id}
+                        className="overflow-hidden rounded-xl border border-border bg-background/50"
+                      >
                         <button
                           type="button"
-                          onClick={() => removeExperience(experience.id)}
-                          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10"
+                          onClick={() => toggleExperience(experience.id)}
+                          className="flex w-full items-center justify-between gap-4 px-4 py-3 text-left hover:bg-muted/40"
                         >
-                          <Trash2 className="h-4 w-4" />
-                          Remove
+                          <div className="min-w-0">
+                            <h3 className="truncate text-sm font-bold text-foreground">
+                              {experience.title || `Experience ${index + 1}`}
+                            </h3>
+
+                            <p className="mt-1 truncate text-xs text-muted-foreground">
+                              {[experience.organization, experience.type]
+                                .filter(Boolean)
+                                .join(" · ") || "Add organization and type"}
+                            </p>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-3">
+                            <ChevronDown
+                              className={`h-4 w-4 text-muted-foreground transition-transform ${
+                                isExpanded ? "rotate-180" : ""
+                              }`}
+                            />
+                          </div>
                         </button>
+
+                        {isExpanded ? (
+                          <div className="border-t border-border p-4">
+                            <div className="mb-4 flex items-center justify-end">
+                              <button
+                                type="button"
+                                onClick={() => removeExperience(experience.id)}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Remove
+                              </button>
+                            </div>
+
+                            <div className="grid gap-4 md:grid-cols-2">
+                              <TextInput
+                                label="Title"
+                                value={experience.title}
+                                onChange={(value) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "title",
+                                    value,
+                                  )
+                                }
+                                placeholder="Backend Engineer"
+                              />
+
+                              <TextInput
+                                label="Organization"
+                                value={experience.organization}
+                                onChange={(value) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "organization",
+                                    value,
+                                  )
+                                }
+                                placeholder="Company or school"
+                              />
+
+                              <label className="block">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                  Type
+                                </span>
+                                <select
+                                  value={experience.type}
+                                  onChange={(event) =>
+                                    updateExperience(
+                                      experience.id,
+                                      "type",
+                                      event.target
+                                        .value as ProfileExperience["type"],
+                                    )
+                                  }
+                                  className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                                >
+                                  <option value="WORK">Work</option>
+                                  <option value="INTERNSHIP">Internship</option>
+                                  <option value="PROJECT">Project</option>
+                                  <option value="FREELANCE">Freelance</option>
+                                  <option value="EDUCATION">Education</option>
+                                </select>
+                              </label>
+
+                              <label className="flex items-end gap-2 pb-2">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(experience.isCurrent)}
+                                  onChange={(event) =>
+                                    updateExperience(
+                                      experience.id,
+                                      "isCurrent",
+                                      event.target.checked,
+                                    )
+                                  }
+                                  className="h-4 w-4 rounded border-border [accent-color:var(--primary)] focus:ring-primary/20"
+                                />
+                                <span className="text-sm font-medium text-foreground">
+                                  Current experience
+                                </span>
+                              </label>
+
+                              <TextInput
+                                label="Start date"
+                                value={experience.startDate || ""}
+                                onChange={(value) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "startDate",
+                                    value,
+                                  )
+                                }
+                                placeholder="2024-01"
+                              />
+
+                              <TextInput
+                                label="End date"
+                                value={experience.endDate || ""}
+                                onChange={(value) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "endDate",
+                                    value,
+                                  )
+                                }
+                                placeholder="2025-12"
+                                readOnly={Boolean(experience.isCurrent)}
+                              />
+                            </div>
+
+                            <label className="mt-4 block">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Description
+                              </span>
+                              <textarea
+                                value={experience.description || ""}
+                                onChange={(event) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "description",
+                                    event.target.value,
+                                  )
+                                }
+                                rows={3}
+                                placeholder="Describe responsibilities, outcomes, or project scope."
+                                className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                              />
+                            </label>
+
+                            <label className="mt-4 block">
+                              <span className="text-sm font-medium text-muted-foreground">
+                                Technologies
+                              </span>
+                              <input
+                                value={(experience.technologies ?? []).join(
+                                  ", ",
+                                )}
+                                onChange={(event) =>
+                                  updateExperience(
+                                    experience.id,
+                                    "technologies",
+                                    event.target.value
+                                      .split(",")
+                                      .map((technology) => technology.trim())
+                                      .filter(Boolean),
+                                  )
+                                }
+                                placeholder="React, NestJS, PostgreSQL"
+                                className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                              />
+                            </label>
+                          </div>
+                        ) : null}
                       </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <TextInput
-                          label="Title"
-                          value={experience.title}
-                          onChange={(value) =>
-                            updateExperience(experience.id, "title", value)
-                          }
-                          placeholder="Backend Engineer"
-                        />
-                        <TextInput
-                          label="Organization"
-                          value={experience.organization}
-                          onChange={(value) =>
-                            updateExperience(
-                              experience.id,
-                              "organization",
-                              value,
-                            )
-                          }
-                          placeholder="Company or school"
-                        />
-                        <label className="block">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Type
-                          </span>
-                          <select
-                            value={experience.type}
-                            onChange={(event) =>
-                              updateExperience(
-                                experience.id,
-                                "type",
-                                event.target
-                                  .value as ProfileExperience["type"],
-                              )
-                            }
-                            className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
-                          >
-                            <option value="WORK">Work</option>
-                            <option value="INTERNSHIP">Internship</option>
-                            <option value="PROJECT">Project</option>
-                            <option value="FREELANCE">Freelance</option>
-                            <option value="EDUCATION">Education</option>
-                          </select>
-                        </label>
-                        <label className="flex items-end gap-2 pb-2">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(experience.isCurrent)}
-                            onChange={(event) =>
-                              updateExperience(
-                                experience.id,
-                                "isCurrent",
-                                event.target.checked,
-                              )
-                            }
-                            className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20"
-                          />
-                          <span className="text-sm font-medium text-foreground">
-                            Current experience
-                          </span>
-                        </label>
-                        <TextInput
-                          label="Start date"
-                          value={experience.startDate || ""}
-                          onChange={(value) =>
-                            updateExperience(experience.id, "startDate", value)
-                          }
-                          placeholder="2024-01"
-                        />
-                        <TextInput
-                          label="End date"
-                          value={experience.endDate || ""}
-                          onChange={(value) =>
-                            updateExperience(experience.id, "endDate", value)
-                          }
-                          placeholder="2025-12"
-                          readOnly={Boolean(experience.isCurrent)}
-                        />
-                      </div>
-
-                      <label className="mt-4 block">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Description
-                        </span>
-                        <textarea
-                          value={experience.description || ""}
-                          onChange={(event) =>
-                            updateExperience(
-                              experience.id,
-                              "description",
-                              event.target.value,
-                            )
-                          }
-                          rows={3}
-                          placeholder="Describe responsibilities, outcomes, or project scope."
-                          className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
-                        />
-                      </label>
-
-                      <label className="mt-4 block">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Technologies
-                        </span>
-                        <input
-                          value={(experience.technologies ?? []).join(", ")}
-                          onChange={(event) =>
-                            updateExperience(
-                              experience.id,
-                              "technologies",
-                              event.target.value
-                                .split(",")
-                                .map((technology) => technology.trim())
-                                .filter(Boolean),
-                            )
-                          }
-                          placeholder="React, NestJS, PostgreSQL"
-                          className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
-                        />
-                      </label>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-background/50 p-5 text-sm text-muted-foreground">
@@ -817,62 +890,62 @@ export function SettingsPage() {
           </div>
 
           <div className="space-y-5">
-            <PageCard className="p-5 text-center">
+            <PageCard className="p-5">
               <SectionHeader
-                icon={Camera}
+                icon={User}
                 title="Avatar"
-                description="Stored in users.avatar after upload."
+                description="Upload a new profile photo."
               />
-              <div className="relative mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-black text-primary">
-                {user?.avatar ? (
-                  <img
-                    src={user.avatar}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  avatarFallback
-                )}
+
+              <div className="flex flex-col items-center">
+                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-black text-primary">
+                  {avatarSrc ? (
+                    <img
+                      src={avatarSrc}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    avatarFallback
+                  )}
+                </div>
+
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void uploadAvatar(file);
+                  }}
+                />
+
+                <p className="mt-4 text-center text-sm text-muted-foreground">
+                  JPG, PNG, or GIF. Max 5MB.
+                </p>
+
+                {avatarUploadMessage ? (
+                  <p className="mt-2 text-center text-sm font-medium text-muted-foreground">
+                    {avatarUploadMessage}
+                  </p>
+                ) : null}
+
                 <button
                   onClick={() => avatarInputRef.current?.click()}
-                  className="absolute bottom-1 right-1 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm"
+                  disabled={isAvatarUploading}
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-primary/30 bg-card px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
                   type="button"
                 >
-                  <Camera className="h-4 w-4" />
+                  {isAvatarUploading ? "Uploading..." : "Change photo"}
                 </button>
               </div>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void uploadAvatar(file);
-                }}
-              />
-              <p className="mt-4 text-sm text-muted-foreground">
-                JPG, PNG, or GIF. Max 5MB.
-              </p>
-              {avatarUploadMessage ? (
-                <p className="mt-2 text-sm font-medium text-muted-foreground">
-                  {avatarUploadMessage}
-                </p>
-              ) : null}
-              <button
-                onClick={() => avatarInputRef.current?.click()}
-                disabled={isAvatarUploading}
-                className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-primary/30 bg-card px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
-                type="button"
-              >
-                {isAvatarUploading ? "Uploading..." : "Change photo"}
-              </button>
             </PageCard>
 
             <PageCard className="p-5">
               <h2 className="text-base font-bold text-foreground">
-                Saved structured data
+                Profile summary
               </h2>
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
@@ -888,7 +961,7 @@ export function SettingsPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Improvements</span>
+                  <span className="text-muted-foreground">Suggestions</span>
                   <span className="font-semibold text-foreground">
                     {profile.suggestedImprovements.length}
                   </span>

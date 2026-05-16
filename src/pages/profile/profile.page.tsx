@@ -15,6 +15,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/shared/ui/app-shell";
 import { useSession } from "@/features/auth/session/session.model";
+import { useAvatarFile } from "@/features/profile/avatar.model";
 import {
   type ProfilePreferences,
   formatSalaryRange,
@@ -126,12 +127,10 @@ function getMonthDuration(
   isCurrent?: boolean | null,
 ) {
   const start = parseYearMonth(startDate);
-  const now = new Date();
-
   const end = isCurrent
     ? {
-        year: now.getFullYear(),
-        month: now.getMonth() + 1,
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
       }
     : parseYearMonth(endDate);
 
@@ -207,6 +206,7 @@ function formatExperienceType(type?: string | null) {
 export function ProfilePage() {
   const { user } = useSession();
   const { profile } = useProfilePreferences(user);
+  const { avatarSrc } = useAvatarFile(user?.avatar);
   const navigate = useNavigate();
   const displayName = profile.fullName || "Unnamed user";
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
@@ -243,9 +243,9 @@ export function ProfilePage() {
         <PageCard className="p-5">
           <div className="grid gap-5 md:grid-cols-[120px_1fr] md:items-center">
             <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-4xl font-black text-primary md:mx-0">
-              {user?.avatar ? (
+              {avatarSrc ? (
                 <img
-                  src={user.avatar}
+                  src={avatarSrc}
                   alt={displayName}
                   className="h-full w-full object-cover"
                 />
