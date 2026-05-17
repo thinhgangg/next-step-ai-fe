@@ -80,6 +80,18 @@ export type CvAnalysisResult = {
     jobLocation?: string | null;
     jobIsRemote: boolean;
     jobSkills: JobSkillAnalysis[];
+    companyName?: string | null;
+    employmentType?: string | null;
+    salaryMin?: number | null;
+    salaryMax?: number | null;
+    currency?: string | null;
+    postedAt?: string | null;
+    scrapedAt?: string | null;
+    applicationDeadline?: string | null;
+    roleResponsibilities?: string | null;
+    skillsQualifications?: string | null;
+    benefits?: string | null;
+    experience?: string | null;
   };
   jobMatch: {
     score: number;

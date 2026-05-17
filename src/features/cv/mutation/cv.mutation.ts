@@ -27,6 +27,18 @@ const CV_ANALYSIS_FIELDS = gql`
         importance
         requiredProficiency
       }
+      companyName
+      employmentType
+      salaryMin
+      salaryMax
+      currency
+      postedAt
+      scrapedAt
+      applicationDeadline
+      roleResponsibilities
+      skillsQualifications
+      benefits
+      experience
     }
     jobMatch {
       score

@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ExternalLink,
+  FileText,
   Gauge,
   GraduationCap,
   Lightbulb,
@@ -40,8 +41,83 @@ type ScoreMetricItem = {
   note: string;
 };
 
+type JobContextWithOptionalDetails = CvAnalysisResult["jobContext"] &
+  Partial<{
+    company: { name?: string | null } | null;
+    companyName: string | null;
+    employmentType: string | null;
+    salaryMin: number | null;
+    salaryMax: number | null;
+    currency: string | null;
+    postedAt: string | null;
+    scrapedAt: string | null;
+    applicationDeadline: string | null;
+    roleResponsibilities: string | string[] | null;
+    skillsQualifications: string | string[] | null;
+    benefits: string | string[] | null;
+    experience: string | null;
+  }>;
+
 function clampScore(value?: number | null) {
   return Math.max(0, Math.min(100, Math.round(value || 0)));
+}
+
+function formatRelativeDate(value?: string | null) {
+  if (!value) return "Recently added";
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "Recently added";
+
+  const diffDays = Math.max(
+    0,
+    Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)),
+  );
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "1 day ago";
+  return `${diffDays} days ago`;
+}
+
+function formatSalary(job: JobContextWithOptionalDetails) {
+  const { salaryMin, salaryMax, currency = "" } = job;
+
+  if (salaryMin == null && salaryMax == null) return "Not provided.";
+
+  const format = (value: number) => new Intl.NumberFormat().format(value);
+  const prefix = currency ? `${currency} ` : "";
+
+  if (salaryMin != null && salaryMax != null) {
+    return `${prefix}${format(salaryMin)} - ${format(salaryMax)}`;
+  }
+
+  if (salaryMin != null) return `${prefix}${format(salaryMin)}+`;
+  return `${prefix}Up to ${format(salaryMax!)}`;
+}
+
+function formatApplicationDeadline(value?: string | null) {
+  if (!value) return null;
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(timestamp));
+}
+
+function splitTextBlock(value?: string | string[] | null) {
+  if (Array.isArray(value)) {
+    return value.map((line) => line.trim()).filter(Boolean);
+  }
+
+  return (
+    value
+      ?.split(/\r?\n+/)
+      .map((line) => line.replace(/\s+$/g, ""))
+      .filter(Boolean) ?? []
+  );
 }
 
 function formatVerdict(value?: string | null) {
@@ -111,6 +187,22 @@ function Card({
   return (
     <section
       className={`rounded-2xl border border-border bg-card shadow-sm ${className}`}
+    >
+      {children}
+    </section>
+  );
+}
+
+function PageCard({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-xl border border-border bg-card shadow-sm ${className}`}
     >
       {children}
     </section>
@@ -586,6 +678,137 @@ function CourseCard({
   );
 }
 
+function InfoCell({ label, value }: { label: string; value?: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm text-foreground">{value || "Not provided."}</p>
+    </div>
+  );
+}
+
+function JobDescriptionPanel({
+  analysis,
+}: {
+  analysis: CvAnalysisResult;
+}) {
+  const job = analysis.jobContext as JobContextWithOptionalDetails;
+  const companyName = job.company?.name ?? job.companyName ?? "Not provided.";
+  const location =
+    job.jobLocation ?? (job.jobIsRemote ? "Remote" : "Not provided.");
+  const employmentType = job.employmentType ?? "Not provided.";
+  const experienceText =
+    job.experience?.trim() ||
+    (job.jobYearsRequired
+      ? `${job.jobYearsRequired} year${job.jobYearsRequired > 1 ? "s" : ""} required`
+      : "Not provided.");
+  const applicationDeadlineText = formatApplicationDeadline(
+    job.applicationDeadline,
+  );
+  const responsibilities = splitTextBlock(job.roleResponsibilities);
+  const qualifications = splitTextBlock(job.skillsQualifications);
+  const benefits = splitTextBlock(job.benefits);
+  const skills = job.jobSkills ?? [];
+  const postedDateText =
+    job.postedAt || job.scrapedAt
+      ? formatRelativeDate(job.postedAt ?? job.scrapedAt)
+      : "Not provided.";
+
+  /*
+   * API/model note: persisted catalog jobs are enriched with the fields below.
+   * Uploaded JD scans may still return Not provided until the AI job context
+   * extracts company, salary, dates, responsibilities, qualifications,
+   * benefits, employmentType, and experience from raw JD text.
+   */
+  return (
+    <aside className="space-y-4 lg:sticky lg:top-24">
+      <PageCard className="p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="mb-2 inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              {postedDateText}
+            </p>
+            <h2 className="text-xl font-black text-foreground">{job.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-muted-foreground">
+              {companyName}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-2 text-sm md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <InfoCell label="Location" value={location} />
+          <InfoCell label="Level" value={job.jobLevel || "Not provided."} />
+          <InfoCell label="Job type" value={employmentType} />
+          <InfoCell label="Salary" value={formatSalary(job)} />
+          <InfoCell label="Experience" value={experienceText} />
+          <InfoCell
+            label="Deadline"
+            value={applicationDeadlineText ?? "Not provided."}
+          />
+        </div>
+
+        {job.sourceUrl ? (
+          <a
+            href={job.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Job Description
+          </a>
+        ) : null}
+      </PageCard>
+
+      <PageCard className="p-5">
+        <h3 className="mb-3 text-base font-bold text-foreground">Skills</h3>
+        {skills.length ? (
+          <div className="flex flex-wrap gap-2">
+            {skills.slice(0, 14).map((skill, index) => (
+              <span
+                key={`${skill.name}-${index}`}
+                className="rounded-full border border-border bg-background px-3 py-1 text-xs text-muted-foreground"
+              >
+                {skill.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">No skills listed.</p>
+        )}
+      </PageCard>
+
+      <PageCard className="p-5">
+        <h3 className="mb-3 text-base font-bold text-foreground">
+          Job Snapshot
+        </h3>
+        <div className="space-y-4 text-sm leading-6 text-foreground">
+          {[
+            { title: "Responsibilities", items: responsibilities },
+            { title: "Qualifications", items: qualifications },
+            { title: "Benefits", items: benefits },
+          ].map((section) => (
+            <div key={section.title}>
+              <h4 className="font-semibold text-primary">{section.title}</h4>
+              {section.items.length ? (
+                <ul className="mt-1 space-y-1 text-muted-foreground">
+                  {section.items.slice(0, 5).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-muted-foreground">Not provided.</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </PageCard>
+    </aside>
+  );
+}
+
 function OverviewTab({ analysis }: { analysis: CvAnalysisResult }) {
   const breakdown = analysis.jobMatch.scoreBreakdown;
   const metrics: ScoreMetricItem[] = [
@@ -870,6 +1093,7 @@ function FinalRecommendation({ analysis }: { analysis: CvAnalysisResult }) {
 
 function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
   const [activeTab, setActiveTab] = useState<ReportTab>("overview");
+  const [showJobDescription, setShowJobDescription] = useState(false);
   const score = clampScore(analysis.jobMatch.score);
   const { visible: visibleMissingSkills } = compactList(
     analysis.jobMatch.missingSkills,
@@ -942,59 +1166,86 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
       </Card>
 
       <div className="sticky top-0 z-10 -mx-4 border-y border-border bg-background/90 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-        <div className="flex flex-wrap gap-2">
-          <TabButton
-            active={activeTab === "overview"}
-            onClick={() => setActiveTab("overview")}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <TabButton
+              active={activeTab === "overview"}
+              onClick={() => setActiveTab("overview")}
+            >
+              Overview
+            </TabButton>
+            <TabButton
+              active={activeTab === "skills"}
+              onClick={() => setActiveTab("skills")}
+            >
+              Skills & Gaps
+            </TabButton>
+            <TabButton
+              active={activeTab === "roadmap"}
+              onClick={() => setActiveTab("roadmap")}
+            >
+              Roadmap
+            </TabButton>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowJobDescription((value) => !value)}
+            className={`inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-bold transition ${
+              showJobDescription
+                ? "border-primary/30 bg-primary/10 text-primary hover:bg-primary/15"
+                : "border-border bg-card text-foreground hover:border-primary/30 hover:text-primary"
+            }`}
           >
-            Overview
-          </TabButton>
-          <TabButton
-            active={activeTab === "skills"}
-            onClick={() => setActiveTab("skills")}
-          >
-            Skills & Gaps
-          </TabButton>
-          <TabButton
-            active={activeTab === "roadmap"}
-            onClick={() => setActiveTab("roadmap")}
-          >
-            Roadmap
-          </TabButton>
+            <FileText className="h-4 w-4" />
+            {showJobDescription ? "Hide JD" : "Compare with JD"}
+          </button>
         </div>
       </div>
 
-      {activeTab === "overview" ? <OverviewTab analysis={analysis} /> : null}
-      {activeTab === "skills" ? <SkillsTab analysis={analysis} /> : null}
-      {activeTab === "roadmap" ? <RoadmapTab analysis={analysis} /> : null}
+      <div
+        className={
+          showJobDescription
+            ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-start xl:grid-cols-[minmax(0,1fr)_430px]"
+            : ""
+        }
+      >
+        <main className="min-w-0 space-y-5">
+          {activeTab === "overview" ? <OverviewTab analysis={analysis} /> : null}
+          {activeTab === "skills" ? <SkillsTab analysis={analysis} /> : null}
+          {activeTab === "roadmap" ? <RoadmapTab analysis={analysis} /> : null}
 
-      <FinalRecommendation analysis={analysis} />
+          <FinalRecommendation analysis={analysis} />
 
-      <Card className="p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <BriefcaseBusiness className="h-4 w-4 text-primary" />
-              Source job
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              CV level: {analysis.extractedProfile.cvLevel || "Unknown"} ·
-              Target level: {analysis.jobContext.jobLevel || "Unknown"}
-            </p>
-          </div>
-          {analysis.jobContext.sourceUrl ? (
-            <a
-              href={analysis.jobContext.sourceUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex w-fit items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/15"
-            >
-              View Job Description
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          ) : null}
-        </div>
-      </Card>
+          <Card className="p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+                  <BriefcaseBusiness className="h-4 w-4 text-primary" />
+                  Source job
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  CV level: {analysis.extractedProfile.cvLevel || "Unknown"} ·
+                  Target level: {analysis.jobContext.jobLevel || "Unknown"}
+                </p>
+              </div>
+              {analysis.jobContext.sourceUrl ? (
+                <a
+                  href={analysis.jobContext.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-fit items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary hover:bg-primary/15"
+                >
+                  View Job Description
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : null}
+            </div>
+          </Card>
+        </main>
+
+        {showJobDescription ? <JobDescriptionPanel analysis={analysis} /> : null}
+      </div>
     </div>
   );
 }
