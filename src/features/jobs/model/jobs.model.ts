@@ -1,16 +1,10 @@
 import { useQuery } from "@apollo/client/react";
 import { GET_JOBS } from "@/features/jobs/query/get-jobs.query";
+import type { EmploymentTypeFilterOption } from "@/shared/lib/job-options";
+export type { EmploymentTypeFilterOption } from "@/shared/lib/job-options";
 
 export type JobSortOption = "RELEVANCE" | "DATE";
 export type JobDateRangeOption = "ANY" | "D3" | "D7" | "D30";
-export type EmploymentTypeFilterOption =
-  | "ALL"
-  | "Fulltime"
-  | "Part-time"
-  | "CONTRACT"
-  | "INTERNSHIP"
-  | "TEMPORARY"
-  | "VOLUNTEER";
 export type ExperienceFilterOption =
   | "ALL"
   | "UNDER_1"

@@ -10,7 +10,6 @@ import {
   Phone,
   Sparkles,
   Target,
-  User,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/shared/ui/app-shell";
@@ -19,9 +18,9 @@ import { useAvatarFile } from "@/features/profile/avatar.model";
 import {
   type ProfilePreferences,
   formatSalaryRange,
-  formatWorkStyle,
   useProfilePreferences,
 } from "@/features/profile/profile-preferences.model";
+import { formatExperienceType, formatWorkStyle } from "@/shared/lib/job-format";
 
 function PageCard({
   children,
@@ -32,7 +31,7 @@ function PageCard({
 }) {
   return (
     <section
-      className={`rounded-xl border border-border bg-card shadow-sm ${className}`}
+      className={`flex flex-col rounded-xl border border-border bg-card shadow-sm ${className}`}
     >
       {children}
     </section>
@@ -172,7 +171,7 @@ function formatExperienceDate(
   const end = isCurrent ? "Present" : formatYearMonth(endDate);
   const duration = getMonthDuration(startDate, endDate, isCurrent);
 
-  return duration ? `${start} - ${end} · ${duration}` : `${start} - ${end}`;
+  return duration ? `${start} - ${end} - ${duration}` : `${start} - ${end}`;
 }
 
 function getExperienceSortValue(
@@ -187,22 +186,6 @@ function getExperienceSortValue(
   return parsed.year * 12 + parsed.month;
 }
 
-function formatExperienceType(type?: string | null) {
-  if (!type) return null;
-
-  const map: Record<string, string> = {
-    WORK: "Full-time",
-    FULL_TIME: "Full-time",
-    PART_TIME: "Part-time",
-    INTERNSHIP: "Internship",
-    FREELANCE: "Freelance",
-    PROJECT: "Project",
-    CONTRACT: "Contract",
-  };
-
-  return map[type] || type;
-}
-
 export function ProfilePage() {
   const { user } = useSession();
   const { profile } = useProfilePreferences(user);
@@ -210,6 +193,10 @@ export function ProfilePage() {
   const navigate = useNavigate();
   const displayName = profile.fullName || "Unnamed user";
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
+  const headline =
+    profile.currentRole ||
+    profile.careerGoals.targetRole ||
+    "Headline not provided";
   const sortedExperiences = [...profile.experiences].sort(
     (a, b) => getExperienceSortValue(b) - getExperienceSortValue(a),
   );
@@ -240,6 +227,7 @@ export function ProfilePage() {
           </button>
         </section>
 
+        {/* Avatar Card — full width */}
         <PageCard className="p-5">
           <div className="grid gap-5 md:grid-cols-[120px_1fr] md:items-center">
             <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-4xl font-black text-primary md:mx-0">
@@ -257,178 +245,187 @@ export function ProfilePage() {
               <h2 className="text-2xl font-black text-foreground">
                 {displayName}
               </h2>
-              <div className="mt-4 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground md:justify-start">
                 <span className="inline-flex items-center gap-2">
                   <BriefcaseBusiness className="h-4 w-4" />
-                  {profile.currentRole || "Role not provided"}
+                  {headline}
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   {profile.location || "Location not provided"}
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  {profile.experienceYears !== null
-                    ? `${profile.experienceYears} years`
-                    : "Experience not provided"}
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  {profile.email || "Email not provided"}
                 </span>
               </div>
             </div>
           </div>
         </PageCard>
 
-        <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-          <PageCard className="p-5">
-            <h2 className="mb-4 text-base font-bold text-foreground">
-              Account information
-            </h2>
-            <InfoRow icon={User} label="Full name" value={profile.fullName} />
-            <InfoRow icon={Mail} label="Email" value={profile.email} />
-            <InfoRow icon={Phone} label="Phone" value={profile.phone} />
-            <InfoRow icon={MapPin} label="Location" value={profile.location} />
-          </PageCard>
-
-          <PageCard className="p-5">
-            <h2 className="mb-4 text-base font-bold text-foreground">
-              Career information
-            </h2>
-            <InfoRow
-              icon={BriefcaseBusiness}
-              label="Current role"
-              value={profile.currentRole}
-            />
-            <InfoRow
-              icon={Target}
-              label="Experience"
-              value={
-                profile.experienceYears !== null
-                  ? `${profile.experienceYears} years`
-                  : null
-              }
-            />
-            <InfoRow
-              icon={Target}
-              label="Target salary"
-              value={formatSalaryRange(profile)}
-            />
-            <InfoRow
-              icon={BriefcaseBusiness}
-              label="Work style"
-              value={formatWorkStyle(profile.workStyle)}
-            />
-          </PageCard>
-        </section>
-
-        <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-          <PageCard className="p-5">
-            <h2 className="mb-4 text-base font-bold text-foreground">Links</h2>
-            <LinkRow icon={Github} label="GitHub" url={profile.githubUrl} />
-            <LinkRow
-              icon={Linkedin}
-              label="LinkedIn"
-              url={profile.linkedinUrl}
-            />
-            <LinkRow
-              icon={ExternalLink}
-              label="Portfolio"
-              url={profile.portfolioUrl}
-            />
-          </PageCard>
-
-          <PageCard className="p-5">
-            <h2 className="mb-4 text-base font-bold text-foreground">Skills</h2>
-            {profile.skills.length ? (
-              <div className="flex flex-wrap gap-2">
-                {profile.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="rounded-full border border-primary/10 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <EmptyState label="No skills saved yet." />
-            )}
-          </PageCard>
-        </section>
-
-        <section className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-          <PageCard className="p-5">
-            <h2 className="mb-4 text-base font-bold text-foreground">
-              Experience
-            </h2>
-            {sortedExperiences.length ? (
-              <div>
-                {sortedExperiences.map((experience, index) => (
-                  <div
-                    key={experience.id}
-                    className="relative grid grid-cols-[22px_1fr] gap-4 pb-5 last:pb-0"
-                  >
-                    {index < sortedExperiences.length - 1 ? (
-                      <span className="absolute left-[10px] top-6 h-[calc(100%-24px)] w-px bg-border" />
-                    ) : null}
-                    <span className="relative z-10 mt-1 h-5 w-5 rounded-full border-4 border-primary/15 bg-primary" />
-                    <div className="rounded-xl border border-border bg-background/50 p-4">
-                      <div className="min-w-0">
-                        <h3 className="text-base font-bold text-foreground">
-                          {experience.title || "Untitled experience"}
-                        </h3>
-
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {[
-                            experience.organization,
-                            formatExperienceType(experience.type),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "Organization not provided"}
-                        </p>
-
-                        <p className="mt-1 text-xs font-medium text-muted-foreground">
-                          {formatExperienceDate(
-                            experience.startDate,
-                            experience.endDate,
-                            experience.isCurrent,
-                          )}
-                        </p>
-                      </div>
-
-                      {experience.description ? (
-                        <p className="mt-4 whitespace-pre-line text-sm leading-6 text-muted-foreground">
-                          {experience.description}
-                        </p>
-                      ) : null}
-
-                      {experience.technologies?.length ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {experience.technologies.map((technology) => (
-                            <span
-                              key={technology}
-                              className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-                            >
-                              {technology}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState label="No experience saved yet." />
-            )}
-          </PageCard>
-
-          <div className="space-y-5">
+        {/* Main layout */}
+        <div className="grid gap-5 xl:grid-cols-[2fr_2fr] xl:items-start">
+          {/* Main column */}
+          <div className="flex flex-col gap-5">
+            {/* Profile Overview */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Career goals
+                Profile Overview
+              </h2>
+              <div className="mb-3 border-b border-border pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Personal
+              </div>
+              <InfoRow icon={Mail} label="Email" value={profile.email} />
+              <InfoRow icon={Phone} label="Phone" value={profile.phone} />
+              <InfoRow
+                icon={MapPin}
+                label="Location"
+                value={profile.location}
+              />
+
+              <div className="mb-3 mt-5 border-b border-border pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Career Snapshot
+              </div>
+              <InfoRow
+                icon={BriefcaseBusiness}
+                label="Current role"
+                value={profile.currentRole}
+              />
+              <InfoRow
+                icon={Target}
+                label="Experience"
+                value={
+                  profile.experienceYears !== null
+                    ? `${profile.experienceYears} years`
+                    : null
+                }
+              />
+            </PageCard>
+
+            {/* Experience */}
+            <PageCard className="p-5">
+              <h2 className="mb-4 text-base font-bold text-foreground">
+                Experience
+              </h2>
+              {sortedExperiences.length ? (
+                <div>
+                  {sortedExperiences.map((experience, index) => (
+                    <div
+                      key={experience.id}
+                      className="relative grid grid-cols-[22px_1fr] gap-4 pb-5 last:pb-0"
+                    >
+                      {index < sortedExperiences.length - 1 ? (
+                        <span className="absolute left-[10px] top-6 h-[calc(100%-24px)] w-px bg-border" />
+                      ) : null}
+                      <span className="relative z-10 mt-1 h-5 w-5 rounded-full border-4 border-primary/15 bg-primary" />
+
+                      <div className="rounded-xl border border-border bg-background/50 p-4">
+                        {/* Header */}
+                        <div className="grid grid-cols-[auto_1fr] gap-3">
+                          {/* Icon */}
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-background">
+                            <BriefcaseBusiness className="h-5 w-5 text-muted-foreground" />
+                          </div>
+
+                          {/* Info */}
+                          <div className="grid grid-cols-[1fr_auto] items-start gap-2">
+                            <div>
+                              <h3 className="text-sm font-bold text-foreground">
+                                {experience.title || "Untitled experience"}
+                              </h3>
+                              <p className="mt-0.5 text-sm text-muted-foreground">
+                                {experience.organization ||
+                                  "Organization not provided"}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              {experience.type ? (
+                                <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                                  {formatExperienceType(experience.type)}
+                                </span>
+                              ) : null}
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {formatExperienceDate(
+                                  experience.startDate,
+                                  experience.endDate,
+                                  experience.isCurrent,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        {experience.description ? (
+                          <p className="mt-4 whitespace-pre-line text-sm leading-6 text-muted-foreground">
+                            {experience.description}
+                          </p>
+                        ) : null}
+
+                        {/* Tech tags */}
+                        {experience.technologies?.length ? (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {experience.technologies.map((technology) => (
+                              <span
+                                key={technology}
+                                className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                              >
+                                {technology}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState label="No experience saved yet." />
+              )}
+            </PageCard>
+          </div>
+
+          {/* Side column */}
+          <div className="flex flex-col gap-5">
+            {/* Skills */}
+            <PageCard className="p-5">
+              <h2 className="mb-4 text-base font-bold text-foreground">
+                Skills
+              </h2>
+              {profile.skills.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="rounded-full border border-primary/10 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState label="No skills saved yet." />
+              )}
+            </PageCard>
+
+            {/* Online Profiles */}
+            <PageCard className="p-5">
+              <h2 className="mb-4 text-base font-bold text-foreground">
+                Online Profiles
+              </h2>
+              <LinkRow
+                icon={Linkedin}
+                label="LinkedIn"
+                url={profile.linkedinUrl}
+              />
+              <LinkRow icon={Github} label="GitHub" url={profile.githubUrl} />
+              <LinkRow
+                icon={ExternalLink}
+                label="Portfolio"
+                url={profile.portfolioUrl}
+              />
+            </PageCard>
+
+            {/* Career Goals */}
+            <PageCard className="p-5">
+              <h2 className="mb-4 text-base font-bold text-foreground">
+                Career Goals
               </h2>
               <InfoRow
                 icon={Target}
@@ -447,11 +444,17 @@ export function ProfilePage() {
               />
               <InfoRow
                 icon={Target}
+                label="Expected salary"
+                value={formatSalaryRange(profile)}
+              />
+              <InfoRow
+                icon={Target}
                 label="Goal"
                 value={profile.careerGoals.goal}
               />
             </PageCard>
 
+            {/* Suggested Improvements */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
                 Suggested improvements
@@ -477,7 +480,7 @@ export function ProfilePage() {
               )}
             </PageCard>
           </div>
-        </section>
+        </div>
       </div>
     </AppShell>
   );

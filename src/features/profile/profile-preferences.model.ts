@@ -1,4 +1,9 @@
 import { useEffect, useState } from "react";
+import {
+  DEFAULT_WORK_STYLE,
+  type ExperienceType,
+  type WorkStyle,
+} from "@/shared/lib/job-options";
 
 export type ProfilePreferences = {
   fullName: string;
@@ -9,7 +14,7 @@ export type ProfilePreferences = {
   experienceYears: number | null;
   targetSalaryMin: number | null;
   targetSalaryMax: number | null;
-  workStyle: "ONSITE" | "HYBRID" | "REMOTE" | "HYBRID_OR_REMOTE";
+  workStyle: WorkStyle;
   linkedinUrl: string;
   githubUrl: string;
   portfolioUrl: string;
@@ -23,7 +28,7 @@ export type ProfilePreferences = {
     id: string;
     title: string;
     organization: string;
-    type: "WORK" | "INTERNSHIP" | "PROJECT" | "FREELANCE" | "EDUCATION";
+    type: ExperienceType;
     startDate?: string | null;
     endDate?: string | null;
     isCurrent?: boolean | null;
@@ -33,7 +38,7 @@ export type ProfilePreferences = {
   careerGoals: {
     targetRole?: string | null;
     preferredLocation?: string | null;
-    workStyle?: "ONSITE" | "HYBRID" | "REMOTE" | "HYBRID_OR_REMOTE" | null;
+    workStyle?: WorkStyle | null;
     goal?: string | null;
   };
 };
@@ -75,7 +80,7 @@ export function getDefaultProfilePreferences(
     experienceYears: user?.experienceYears ?? null,
     targetSalaryMin: user?.targetSalaryMin ?? null,
     targetSalaryMax: user?.targetSalaryMax ?? null,
-    workStyle: careerGoals.workStyle || "HYBRID_OR_REMOTE",
+    workStyle: careerGoals.workStyle || DEFAULT_WORK_STYLE,
     linkedinUrl: user?.linkedinUrl?.trim() || "",
     githubUrl: user?.githubUrl?.trim() || "",
     portfolioUrl: user?.portfolioUrl?.trim() || "",
@@ -86,23 +91,10 @@ export function getDefaultProfilePreferences(
       targetRole: careerGoals.targetRole || user?.currentRole || "",
       preferredLocation:
         careerGoals.preferredLocation || user?.location || "",
-      workStyle: careerGoals.workStyle || "HYBRID_OR_REMOTE",
+      workStyle: careerGoals.workStyle || DEFAULT_WORK_STYLE,
       goal: careerGoals.goal || "",
     },
   };
-}
-
-export function formatWorkStyle(
-  workStyle?: ProfilePreferences["workStyle"] | null,
-) {
-  const labels: Record<ProfilePreferences["workStyle"], string> = {
-    ONSITE: "On-site",
-    HYBRID: "Hybrid",
-    REMOTE: "Remote",
-    HYBRID_OR_REMOTE: "Hybrid or remote",
-  };
-
-  return workStyle ? labels[workStyle] : "Not provided";
 }
 
 export function formatSalaryRange(profile: ProfilePreferences) {

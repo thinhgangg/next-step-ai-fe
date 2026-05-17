@@ -25,6 +25,11 @@ import type {
 } from "@/features/jobs/model/jobs.model";
 import { FilterSelect, type SelectOption } from "@/shared/ui/filter-select";
 import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
+import {
+  formatEmploymentType,
+  formatJobLevel,
+} from "@/shared/lib/job-format";
+import { JOB_TYPE_OPTIONS } from "@/shared/lib/job-options";
 
 type SearchMode = "keyword" | "resume";
 type DropdownName =
@@ -51,19 +56,6 @@ const DATE_OPTIONS: Array<{ value: JobDateRangeOption; label: string }> = [
   { value: "D3", label: "Last 3 days" },
   { value: "D7", label: "Last week" },
   { value: "D30", label: "Last month" },
-];
-
-const EMPLOYMENT_TYPE_OPTIONS: Array<{
-  value: EmploymentTypeFilterOption;
-  label: string;
-}> = [
-  { value: "ALL", label: "All" },
-  { value: "Fulltime", label: "Fulltime" },
-  { value: "Part-time", label: "Part-time" },
-  { value: "CONTRACT", label: "Contract" },
-  { value: "INTERNSHIP", label: "Internship" },
-  { value: "TEMPORARY", label: "Temporary" },
-  { value: "VOLUNTEER", label: "Volunteer" },
 ];
 
 const EXPERIENCE_OPTIONS: Array<{
@@ -305,7 +297,7 @@ function JobListItem({
             {job.level ? (
               <span className="inline-flex items-center gap-1.5">
                 <Layers className="h-3.5 w-3.5" />
-                {job.level}
+                {formatJobLevel(job.level)}
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1.5">
@@ -518,7 +510,7 @@ export function JobsBrowser({
       : getFilterButtonLabel(
           employmentType,
           "Employment type",
-          EMPLOYMENT_TYPE_OPTIONS,
+          JOB_TYPE_OPTIONS,
         );
   const experienceLabel =
     experienceRange === "ALL"
@@ -640,7 +632,7 @@ export function JobsBrowser({
             isOpen={openDropdown === "type"}
             onToggle={() => toggleDropdown("type")}
             onClose={closeDropdown}
-            options={EMPLOYMENT_TYPE_OPTIONS}
+            options={JOB_TYPE_OPTIONS}
             onSelect={(value) => {
               setEmploymentType(value);
               setCurrentPage(1);
@@ -842,7 +834,7 @@ export function JobsBrowser({
                       Level
                     </p>
                     <p className="mt-1 text-foreground">
-                      {selectedJob.level ?? "Not provided"}
+                      {formatJobLevel(selectedJob.level)}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
@@ -850,7 +842,7 @@ export function JobsBrowser({
                       Job type
                     </p>
                     <p className="mt-1 text-foreground">
-                      {selectedJob.employmentType ?? "Not provided"}
+                      {formatEmploymentType(selectedJob.employmentType)}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">

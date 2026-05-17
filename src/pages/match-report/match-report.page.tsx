@@ -27,6 +27,10 @@ import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/shared/ui/app-shell";
 import { getLatestAnalysisId } from "@/shared/config/latest-analysis";
 import {
+  formatEmploymentType,
+  formatJobLevel,
+} from "@/shared/lib/job-format";
+import {
   type CvAnalysisResult,
   useCvAnalysisResult,
 } from "@/features/cv/model/cv.model";
@@ -698,7 +702,7 @@ function JobDescriptionPanel({
   const companyName = job.company?.name ?? job.companyName ?? "Not provided.";
   const location =
     job.jobLocation ?? (job.jobIsRemote ? "Remote" : "Not provided.");
-  const employmentType = job.employmentType ?? "Not provided.";
+  const employmentType = formatEmploymentType(job.employmentType);
   const experienceText =
     job.experience?.trim() ||
     (job.jobYearsRequired
@@ -739,7 +743,7 @@ function JobDescriptionPanel({
 
         <div className="grid gap-2 text-sm md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
           <InfoCell label="Location" value={location} />
-          <InfoCell label="Level" value={job.jobLevel || "Not provided."} />
+          <InfoCell label="Level" value={formatJobLevel(job.jobLevel)} />
           <InfoCell label="Job type" value={employmentType} />
           <InfoCell label="Salary" value={formatSalary(job)} />
           <InfoCell label="Experience" value={experienceText} />
@@ -1226,7 +1230,7 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   CV level: {analysis.extractedProfile.cvLevel || "Unknown"} ·
-                  Target level: {analysis.jobContext.jobLevel || "Unknown"}
+                  Target level: {formatJobLevel(analysis.jobContext.jobLevel)}
                 </p>
               </div>
               {analysis.jobContext.sourceUrl ? (

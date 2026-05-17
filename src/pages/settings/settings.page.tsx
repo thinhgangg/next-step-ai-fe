@@ -20,6 +20,10 @@ import {
   type ProfilePreferences,
   useProfilePreferences,
 } from "@/features/profile/profile-preferences.model";
+import {
+  EXPERIENCE_TYPE_OPTIONS,
+  WORK_STYLE_OPTIONS,
+} from "@/shared/lib/job-options";
 import { useAvatarFile } from "@/features/profile/avatar.model";
 import {
   CONFIRM_AVATAR_UPLOAD_MUTATION,
@@ -149,6 +153,9 @@ export function SettingsPage() {
   const [expandedExperienceIds, setExpandedExperienceIds] = useState<
     Set<string>
   >(() => new Set());
+  const [technologyInputs, setTechnologyInputs] = useState<
+    Record<string, string>
+  >({});
   const { data: skillsData, loading: areSkillsLoading } =
     useQuery<GetAllSkillsResponse>(GET_ALL_SKILLS_QUERY);
 
@@ -185,18 +192,6 @@ export function SettingsPage() {
       careerGoals: {
         ...profile.careerGoals,
         [field]: value || null,
-      },
-    });
-  };
-
-  const updateWorkStyle = (value: ProfilePreferences["workStyle"]) => {
-    setStatusMessage(null);
-    setProfile({
-      ...profile,
-      workStyle: value,
-      careerGoals: {
-        ...profile.careerGoals,
-        workStyle: value,
       },
     });
   };
@@ -345,11 +340,53 @@ export function SettingsPage() {
     );
   };
 
+  const parseTechnologies = (value: string) =>
+    value
+      .split(",")
+      .map((technology) => technology.trim())
+      .filter(Boolean);
+
+  const getTechnologyInputValue = (experience: ProfileExperience) =>
+    technologyInputs[experience.id] ??
+    (experience.technologies ?? []).join(", ");
+
+  const updateExperienceTechnologies = (
+    experience: ProfileExperience,
+    value: string,
+  ) => {
+    setTechnologyInputs((current) => ({
+      ...current,
+      [experience.id]: value,
+    }));
+    updateExperience(experience.id, "technologies", parseTechnologies(value));
+  };
+
+  const commitExperienceTechnologies = (experience: ProfileExperience) => {
+    const normalizedValue = (experience.technologies ?? []).join(", ");
+
+    setTechnologyInputs((current) => {
+      const next = { ...current };
+      delete next[experience.id];
+      return next;
+    });
+
+    updateExperience(
+      experience.id,
+      "technologies",
+      parseTechnologies(normalizedValue),
+    );
+  };
+
   const removeExperience = (id: string) => {
     updateProfileField(
       "experiences",
       profile.experiences.filter((experience) => experience.id !== id),
     );
+    setTechnologyInputs((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
   };
 
   const toggleExperience = (id: string) => {
@@ -417,6 +454,17 @@ export function SettingsPage() {
     }
   };
 
+  const completeness = [
+    profile.fullName,
+    profile.phone,
+    profile.location,
+    profile.currentRole,
+    profile.githubUrl,
+    profile.linkedinUrl,
+    profile.careerGoals.targetRole,
+    profile.careerGoals.goal,
+  ].filter(Boolean).length;
+
   return (
     <AppShell fullWidth>
       <div className="mx-auto max-w-[1480px] space-y-5">
@@ -451,108 +499,98 @@ export function SettingsPage() {
           </div>
         </section>
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {/* Profile Information */}
+        <section className="grid gap-5 xl:grid-cols-[1fr_2fr] xl:items-start">
           <div className="space-y-5">
+            {/* Avatar */}
             <PageCard className="p-5">
               <SectionHeader
                 icon={User}
-                title="Account information"
-                description="Your basic profile and contact information."
+                title="Avatar"
+                description="Upload a new profile photo."
               />
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextInput
-                  label="Full name"
-                  value={profile.fullName}
-                  onChange={(value) => updateProfileField("fullName", value)}
-                  placeholder="Your name"
+
+              <div className="flex flex-col items-center">
+                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-black text-primary">
+                  {avatarSrc ? (
+                    <img
+                      src={avatarSrc}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    avatarFallback
+                  )}
+                </div>
+
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) void uploadAvatar(file);
+                  }}
                 />
-                <TextInput
-                  label="Email"
-                  value={profile.email}
-                  readOnly
-                  placeholder="Email is managed by authentication"
-                />
-                <TextInput
-                  label="Phone"
-                  value={profile.phone}
-                  onChange={(value) => updateProfileField("phone", value)}
-                  placeholder="Phone number"
-                />
-                <TextInput
-                  label="Location"
-                  value={profile.location}
-                  onChange={(value) => updateProfileField("location", value)}
-                  placeholder="City, country"
-                />
+
+                <p className="mt-4 text-center text-sm text-muted-foreground">
+                  JPG, PNG, or GIF. Max 5MB.
+                </p>
+
+                {avatarUploadMessage ? (
+                  <p className="mt-2 text-center text-sm font-medium text-muted-foreground">
+                    {avatarUploadMessage}
+                  </p>
+                ) : null}
+
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={isAvatarUploading}
+                  className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-primary/30 bg-card px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                >
+                  {isAvatarUploading ? "Uploading..." : "Change photo"}
+                </button>
               </div>
             </PageCard>
 
+            {/* Profile summary */}
             <PageCard className="p-5">
-              <SectionHeader
-                icon={BriefcaseBusiness}
-                title="Career information"
-                description="Your role, experience level, salary expectation, and work style."
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <TextInput
-                  label="Current role"
-                  value={profile.currentRole}
-                  onChange={(value) => updateProfileField("currentRole", value)}
-                  placeholder="Backend Engineer"
-                />
-                <NumberInput
-                  label="Experience years"
-                  value={profile.experienceYears}
-                  onChange={(value) =>
-                    updateProfileField("experienceYears", value)
-                  }
-                  placeholder="3"
-                />
-                <NumberInput
-                  label="Target salary min"
-                  value={profile.targetSalaryMin}
-                  onChange={(value) =>
-                    updateProfileField("targetSalaryMin", value)
-                  }
-                  placeholder="40"
-                />
-                <NumberInput
-                  label="Target salary max"
-                  value={profile.targetSalaryMax}
-                  onChange={(value) =>
-                    updateProfileField("targetSalaryMax", value)
-                  }
-                  placeholder="60"
-                />
-                <label className="block md:col-span-2">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Work style
+              <h2 className="text-base font-bold text-foreground">
+                Profile summary
+              </h2>
+              <div className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
+                  <span className="text-muted-foreground">Skills</span>
+                  <span className="font-semibold text-foreground">
+                    {profile.skills.length}
                   </span>
-                  <select
-                    value={profile.workStyle}
-                    onChange={(event) => {
-                      const value = event.target
-                        .value as ProfilePreferences["workStyle"];
-                      updateWorkStyle(value);
-                    }}
-                    className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
-                  >
-                    <option value="ONSITE">On-site</option>
-                    <option value="HYBRID">Hybrid</option>
-                    <option value="REMOTE">Remote</option>
-                    <option value="HYBRID_OR_REMOTE">Hybrid or remote</option>
-                  </select>
-                </label>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
+                  <span className="text-muted-foreground">Experiences</span>
+                  <span className="font-semibold text-foreground">
+                    {profile.experiences.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
+                  <span className="text-muted-foreground">Completeness</span>
+                  <span className="font-semibold text-foreground">
+                    {Math.round((completeness / 8) * 100)}%
+                  </span>
+                </div>
               </div>
             </PageCard>
 
+            {/* Links and skills */}
             <PageCard className="p-5">
               <SectionHeader
                 icon={LinkIcon}
                 title="Links and skills"
                 description="Add your professional links and key skills."
               />
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-4">
                 <TextInput
                   label="GitHub URL"
                   value={profile.githubUrl}
@@ -632,11 +670,64 @@ export function SettingsPage() {
                 </div>
               </div>
             </PageCard>
+          </div>
 
+          {/* Main profile details */}
+          <div className="space-y-5">
+            {/* Account Information */}
+            <PageCard className="p-5">
+              <SectionHeader
+                icon={User}
+                title="Profile Overview"
+                description="Your basic profile and career snapshot."
+              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <TextInput
+                  label="Full name"
+                  value={profile.fullName}
+                  onChange={(value) => updateProfileField("fullName", value)}
+                  placeholder="Your name"
+                />
+                <TextInput
+                  label="Email"
+                  value={profile.email}
+                  readOnly
+                  placeholder="Email is managed by authentication"
+                />
+                <TextInput
+                  label="Phone"
+                  value={profile.phone}
+                  onChange={(value) => updateProfileField("phone", value)}
+                  placeholder="Phone number"
+                />
+                <TextInput
+                  label="Location"
+                  value={profile.location}
+                  onChange={(value) => updateProfileField("location", value)}
+                  placeholder="City, country"
+                />
+                <TextInput
+                  label="Current role"
+                  value={profile.currentRole}
+                  onChange={(value) => updateProfileField("currentRole", value)}
+                  placeholder="Backend Engineer"
+                />
+                <NumberInput
+                  label="Experience years"
+                  value={profile.experienceYears}
+                  onChange={(value) =>
+                    updateProfileField("experienceYears", value)
+                  }
+                  placeholder="3"
+                />
+              </div>
+            </PageCard>
+
+            {/* Career Goals */}
             <PageCard className="p-5">
               <SectionHeader
                 icon={Target}
-                title="Career goals"
+                title="Career Goals"
                 description="Tell us what roles, locations, and goals you are aiming for."
               />
               <div className="grid gap-4 md:grid-cols-2">
@@ -654,6 +745,43 @@ export function SettingsPage() {
                   }
                   placeholder="Ho Chi Minh City"
                 />
+                <NumberInput
+                  label="Expected salary min (M VND)"
+                  value={profile.targetSalaryMin}
+                  onChange={(value) =>
+                    updateProfileField("targetSalaryMin", value)
+                  }
+                  placeholder="20"
+                />
+                <NumberInput
+                  label="Expected salary max (M VND)"
+                  value={profile.targetSalaryMax}
+                  onChange={(value) =>
+                    updateProfileField("targetSalaryMax", value)
+                  }
+                  placeholder="30"
+                />
+                <label className="block md:col-span-2">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Work style
+                  </span>
+                  <select
+                    value={profile.careerGoals.workStyle || profile.workStyle}
+                    onChange={(event) =>
+                      updateCareerGoal(
+                        "workStyle",
+                        event.target.value as ProfilePreferences["workStyle"],
+                      )
+                    }
+                    className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+                  >
+                    {WORK_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="block md:col-span-2">
                   <span className="text-sm font-medium text-muted-foreground">
                     Goal
@@ -671,6 +799,7 @@ export function SettingsPage() {
               </div>
             </PageCard>
 
+            {/* {Experiences} */}
             <PageCard className="p-5">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <SectionHeader
@@ -780,11 +909,14 @@ export function SettingsPage() {
                                   }
                                   className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
                                 >
-                                  <option value="WORK">Work</option>
-                                  <option value="INTERNSHIP">Internship</option>
-                                  <option value="PROJECT">Project</option>
-                                  <option value="FREELANCE">Freelance</option>
-                                  <option value="EDUCATION">Education</option>
+                                  {EXPERIENCE_TYPE_OPTIONS.map((option) => (
+                                    <option
+                                      key={option.value}
+                                      value={option.value}
+                                    >
+                                      {option.label}
+                                    </option>
+                                  ))}
                                 </select>
                               </label>
 
@@ -858,18 +990,15 @@ export function SettingsPage() {
                                 Technologies
                               </span>
                               <input
-                                value={(experience.technologies ?? []).join(
-                                  ", ",
-                                )}
+                                value={getTechnologyInputValue(experience)}
                                 onChange={(event) =>
-                                  updateExperience(
-                                    experience.id,
-                                    "technologies",
-                                    event.target.value
-                                      .split(",")
-                                      .map((technology) => technology.trim())
-                                      .filter(Boolean),
+                                  updateExperienceTechnologies(
+                                    experience,
+                                    event.target.value,
                                   )
+                                }
+                                onBlur={() =>
+                                  commitExperienceTechnologies(experience)
                                 }
                                 placeholder="React, NestJS, PostgreSQL"
                                 className="mt-2 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
@@ -886,87 +1015,6 @@ export function SettingsPage() {
                   No experiences saved yet.
                 </div>
               )}
-            </PageCard>
-          </div>
-
-          <div className="space-y-5">
-            <PageCard className="p-5">
-              <SectionHeader
-                icon={User}
-                title="Avatar"
-                description="Upload a new profile photo."
-              />
-
-              <div className="flex flex-col items-center">
-                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-black text-primary">
-                  {avatarSrc ? (
-                    <img
-                      src={avatarSrc}
-                      alt={displayName}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    avatarFallback
-                  )}
-                </div>
-
-                <input
-                  ref={avatarInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    event.target.value = "";
-                    if (file) void uploadAvatar(file);
-                  }}
-                />
-
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                  JPG, PNG, or GIF. Max 5MB.
-                </p>
-
-                {avatarUploadMessage ? (
-                  <p className="mt-2 text-center text-sm font-medium text-muted-foreground">
-                    {avatarUploadMessage}
-                  </p>
-                ) : null}
-
-                <button
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={isAvatarUploading}
-                  className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-primary/30 bg-card px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
-                  type="button"
-                >
-                  {isAvatarUploading ? "Uploading..." : "Change photo"}
-                </button>
-              </div>
-            </PageCard>
-
-            <PageCard className="p-5">
-              <h2 className="text-base font-bold text-foreground">
-                Profile summary
-              </h2>
-              <div className="mt-4 space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Skills</span>
-                  <span className="font-semibold text-foreground">
-                    {profile.skills.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Experiences</span>
-                  <span className="font-semibold text-foreground">
-                    {profile.experiences.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Suggestions</span>
-                  <span className="font-semibold text-foreground">
-                    {profile.suggestedImprovements.length}
-                  </span>
-                </div>
-              </div>
             </PageCard>
           </div>
         </section>

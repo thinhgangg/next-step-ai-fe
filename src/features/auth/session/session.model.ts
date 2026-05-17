@@ -5,6 +5,7 @@ import {
   clearSessionTokens,
   getAccessToken,
 } from "@/shared/lib/storage";
+import type { ExperienceType, WorkStyle } from "@/shared/lib/job-options";
 
 type CurrentUser = {
   userId: string;
@@ -31,7 +32,7 @@ type CurrentUser = {
     id: string;
     title: string;
     organization: string;
-    type: "WORK" | "INTERNSHIP" | "PROJECT" | "FREELANCE" | "EDUCATION";
+    type: ExperienceType;
     startDate?: string | null;
     endDate?: string | null;
     isCurrent?: boolean | null;
@@ -41,7 +42,7 @@ type CurrentUser = {
   careerGoals?: {
     targetRole?: string | null;
     preferredLocation?: string | null;
-    workStyle?: "ONSITE" | "HYBRID" | "REMOTE" | "HYBRID_OR_REMOTE" | null;
+    workStyle?: WorkStyle | null;
     goal?: string | null;
   } | null;
 };
