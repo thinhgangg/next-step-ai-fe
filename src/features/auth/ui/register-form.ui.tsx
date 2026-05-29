@@ -30,8 +30,8 @@ const GoogleIcon = () => (
 
 const registerSchema = z.object({
   email: z.string().email(),
-  name: z.string().min(2, "Username must be at least 2 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
+  password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
 });
 
 export function RegisterForm() {
@@ -61,7 +61,7 @@ export function RegisterForm() {
   });
 
   return (
-    <main className="flex h-screen w-full bg-background [font-family:'Instrument_Sans',sans-serif] text-foreground">
+    <main className="flex h-screen w-full bg-background font-sans text-foreground">
       <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-foreground p-12 lg:flex">
         <div>
           <Link
@@ -74,10 +74,12 @@ export function RegisterForm() {
 
         <div className="max-w-md">
           <h1 className="mb-4 text-5xl font-bold leading-[1.1] tracking-tight text-background xl:text-6xl">
-            Build a profile that gets noticed
+            Tạo hồ sơ nổi bật hơn khi ứng tuyển
           </h1>
           <p className="text-lg font-medium text-muted-foreground">
-            Start your career journey with precision-crafted AI assistance.
+            Với AI của chúng tôi, bạn sẽ nhận được những gợi ý cải thiện hồ sơ
+            để nổi bật hơn trong mắt nhà tuyển dụng và tăng cơ hội được gọi
+            phỏng vấn.
           </p>
         </div>
 
@@ -103,15 +105,15 @@ export function RegisterForm() {
         <div className="w-full max-w-[400px]">
           <header className="mb-10 text-center lg:text-left">
             <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-              Create your account
+              Tạo tài khoản mới
             </h2>
             <p className="text-sm text-muted-foreground">
-              Already have an account?{" "}
+              Đã có tài khoản?{" "}
               <Link
                 to="/login"
                 className="font-semibold text-foreground underline-offset-4 hover:underline"
               >
-                Log in
+                Đăng nhập
               </Link>
             </p>
           </header>
@@ -131,12 +133,12 @@ export function RegisterForm() {
                     htmlFor={field.name}
                     className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Email Address
+                    Email
                   </label>
                   <input
                     id={field.name}
                     type="email"
-                    placeholder="name@company.com"
+                    placeholder="name@example.com"
                     required
                     value={field.state.value}
                     onChange={(e) => field.setValue(e.target.value)}
@@ -158,7 +160,7 @@ export function RegisterForm() {
                     htmlFor={field.name}
                     className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Full Name
+                    Họ và tên
                   </label>
                   <input
                     id={field.name}
@@ -185,14 +187,14 @@ export function RegisterForm() {
                     htmlFor={field.name}
                     className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Password
+                    Mật khẩu
                   </label>
 
                   <div className="relative">
                     <input
                       id={field.name}
                       type={showPassword ? "text" : "password"}
-                      placeholder="........"
+                      placeholder="••••••••"
                       required
                       value={field.state.value}
                       onChange={(e) => field.setValue(e.target.value)}
@@ -203,7 +205,7 @@ export function RegisterForm() {
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
                       }
                     >
                       {showPassword ? (
@@ -227,7 +229,7 @@ export function RegisterForm() {
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {getUserFacingErrorMessage(
                   error,
-                  "Registration failed. Please try again.",
+                  "Đăng ký không thành công. Vui lòng thử lại.",
                 )}
               </div>
             )}
@@ -237,7 +239,7 @@ export function RegisterForm() {
               disabled={loading}
               className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
             </button>
           </form>
 
@@ -247,7 +249,7 @@ export function RegisterForm() {
             </div>
             <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
               <span className="bg-card px-4 text-muted-foreground">
-                or continue with
+                hoặc tiếp tục với
               </span>
             </div>
           </div>

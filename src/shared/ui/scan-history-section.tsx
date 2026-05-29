@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  ArrowRight,
   ArrowUpDown,
   BarChart3,
   Check,
@@ -11,13 +10,18 @@ import {
   FileText,
   Loader2,
   Search,
-  Sparkles,
   Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCvAnalysisHistory } from "@/features/cv/model/cv.model";
 import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
+import {
+  SCORE_RING_TRACK_COLOR,
+  clampScore,
+  getScoreColor,
+  getScoreLabel,
+} from "@/shared/lib/score";
 import { useNavigate } from "@tanstack/react-router";
 
 export type ScanHistoryItem = {
@@ -31,46 +35,21 @@ export type ScanHistoryItem = {
   scanTimestamp: number;
 };
 
-type ScanHistorySectionProps = {
-  hasScan: boolean;
-  onScanResume?: () => void;
-};
-
 type SortBy = "scanDate" | "score";
 type SortOrder = "desc" | "asc";
 
 function ScoreRing({ score }: { score: number }) {
-  const clamped = Math.max(0, Math.min(100, Math.round(score)));
-
-  const color =
-    clamped >= 85
-      ? "#16a34a"
-      : clamped >= 70
-        ? "#2563eb"
-        : clamped >= 50
-          ? "#f59e0b"
-          : clamped >= 30
-            ? "#f97316"
-            : "#ef4444";
-
-  const label =
-    clamped >= 85
-      ? "Excellent"
-      : clamped >= 70
-        ? "Good"
-        : clamped >= 50
-          ? "Average"
-          : clamped >= 30
-            ? "Low"
-            : "Very low";
+  const clamped = clampScore(score);
 
   return (
     <div className="flex items-center justify-center gap-3">
       <div
         className="relative h-11 w-11 shrink-0 rounded-full"
-        title={`${clamped} - ${label}`}
+        title={`${clamped}% - ${getScoreLabel(clamped)}`}
         style={{
-          background: `conic-gradient(${color} ${clamped}%, #e5e7eb ${clamped}% 100%)`,
+          background: `conic-gradient(${getScoreColor(
+            clamped,
+          )} ${clamped}%, ${SCORE_RING_TRACK_COLOR} ${clamped}% 100%)`,
         }}
       >
         <div className="absolute inset-[4px] flex items-center justify-center rounded-full bg-card text-sm font-bold text-foreground">
@@ -119,7 +98,7 @@ function MetricCard({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+          <p className="mt-2 text-xl font-bold tracking-tight text-foreground">
             {value}
           </p>
         </div>
@@ -132,7 +111,7 @@ function MetricCard({
   );
 }
 
-export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
+export function ScanHistorySection() {
   const navigate = useNavigate();
   const { items: historyItems, loading, error } = useCvAnalysisHistory();
   const [searchValue, setSearchValue] = useState("");
@@ -148,23 +127,23 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
         const timestamp = new Date(item.createdAt).getTime();
         const scanTimestamp = Number.isNaN(timestamp) ? 0 : timestamp;
         const scanDate = scanTimestamp
-          ? new Intl.DateTimeFormat("en-US", {
+          ? new Intl.DateTimeFormat("vi-VN", {
               day: "2-digit",
-              month: "short",
+              month: "2-digit",
               year: "numeric",
-            }).format(new Date(scanTimestamp))
-          : "Unknown date";
+            }).format(new Date(timestamp))
+          : "Không rõ ngày";
 
         return {
           id: String(item.analysisId),
           analysisId: item.analysisId,
           score: item.jobMatchScore ?? 0,
-          cvFilename: item.cvFilename ?? "Uploaded CV",
-          jobTitle: item.jobTitle || "Unknown job",
+          cvFilename: item.cvFilename ?? "CV không xác định",
+          jobTitle: item.jobTitle || "Không xác định",
           jobDescription:
             item.roadmapTotalWeeks && item.roadmapTotalWeeks > 0
-              ? `Roadmap estimated at ${item.roadmapTotalWeeks} weeks.`
-              : "Completed match report.",
+              ? `Lộ trình dự kiến trong ${item.roadmapTotalWeeks} tuần.`
+              : "Báo cáo phân tích đã hoàn tất.",
           scanDate,
           scanTimestamp,
         };
@@ -179,7 +158,9 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
     return item.scanTimestamp > latest.scanTimestamp ? item : latest;
   }, null);
   const averageScore = items.length
-    ? Math.round(items.reduce((sum, item) => sum + item.score, 0) / items.length)
+    ? Math.round(
+        items.reduce((sum, item) => sum + item.score, 0) / items.length,
+      )
     : 0;
 
   const filteredAndSortedItems = useMemo(() => {
@@ -221,10 +202,8 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
   const toItem =
     totalItems === 0 ? 0 : Math.min(totalItems, safeCurrentPage * pageSize);
 
-  const orderPrimaryLabel =
-    sortBy === "scanDate" ? "Newest First" : "Highest First";
-  const orderSecondaryLabel =
-    sortBy === "scanDate" ? "Oldest First" : "Lowest First";
+  const orderPrimaryLabel = sortBy === "scanDate" ? "Mới nhất" : "Cao nhất";
+  const orderSecondaryLabel = sortBy === "scanDate" ? "Cũ nhất" : "Thấp nhất";
 
   const openAnalysis = (analysisId: number) => {
     setLatestAnalysisId(analysisId);
@@ -233,43 +212,31 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
 
   return (
     <div className="mx-auto max-w-[1480px] space-y-5">
-      <section>
-        <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          Scan timeline
-        </p>
-        <h1 className="text-3xl font-black tracking-tight text-foreground">
-          Scan History
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Review past resume scans, compare match scores, and reopen reports
-          when you need your next steps.
-        </p>
-      </section>
-
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
-          label="Total scans"
+          label="Tổng số lần phân tích"
           value={items.length}
-          note="Completed reports available here."
+          note="Các báo cáo đã hoàn tất sẽ được lưu tại đây."
           icon={FileText}
         />
         <MetricCard
-          label="Best match"
+          label="Điểm phù hợp cao nhất"
           value={bestScore ? `${bestScore}%` : "--"}
-          note="Highest match score in your scan history."
+          note="Điểm phù hợp cao nhất trong lịch sử phân tích."
           icon={Target}
         />
         <MetricCard
-          label="Average match"
+          label="Điểm phù hợp trung bình"
           value={averageScore ? `${averageScore}%` : "--"}
-          note="Average score across your scans."
+          note="Điểm phù hợp trung bình trong lịch sử phân tích."
           icon={BarChart3}
         />
         <MetricCard
-          label="Latest scan"
+          label="Lần phân tích gần nhất"
           value={latestItem ? latestItem.scanDate : "--"}
-          note={latestItem?.jobTitle ?? "Run a scan to start tracking history."}
+          note={
+            latestItem?.jobTitle ?? "Hãy phân tích CV để bắt đầu lưu lịch sử."
+          }
           icon={Clock3}
         />
       </section>
@@ -278,10 +245,11 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-foreground">
-              Match reports
+              Báo cáo phân tích
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Click any row to open the full match report.
+              Chọn bất kỳ báo cáo nào để xem chi tiết phân tích và lộ trình phát
+              triển cá nhân được đề xuất.
             </p>
           </div>
 
@@ -294,95 +262,97 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                   setSearchValue(e.target.value);
                   setCurrentPage(1);
                 }}
-                placeholder="Search"
+                placeholder="Tìm kiếm..."
                 className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
               />
             </div>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsSortMenuOpen((prev) => !prev)}
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-muted"
-            >
-              <ArrowUpDown className="h-4 w-4" />
-              Sort
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsSortMenuOpen((prev) => !prev)}
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-muted"
+              >
+                <ArrowUpDown className="h-4 w-4" />
+                Sắp xếp
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              </button>
 
-            {isSortMenuOpen && (
-              <div className="absolute right-0 top-11 z-20 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-                <div className="px-4 py-2 text-sm text-muted-foreground">
-                  Sort by
-                </div>
+              {isSortMenuOpen && (
+                <div className="absolute right-0 top-11 z-20 w-56 overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+                  <div className="px-4 py-2 text-sm text-muted-foreground">
+                    Sắp xếp theo
+                  </div>
 
-                {(
-                  [
-                    { value: "score", label: "Score" },
-                    { value: "scanDate", label: "Scan Date" },
-                  ] as const
-                ).map((option) => (
+                  {(
+                    [
+                      { value: "score", label: "Điểm phù hợp" },
+                      { value: "scanDate", label: "Ngày phân tích" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(option.value);
+                        setCurrentPage(1);
+                        setIsSortMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-muted ${
+                        sortBy === option.value
+                          ? "bg-accent text-accent-foreground"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {option.label}
+                      {sortBy === option.value ? (
+                        <Check className="h-4 w-4" />
+                      ) : null}
+                    </button>
+                  ))}
+
+                  <div className="border-t border-border px-4 py-2 text-sm text-muted-foreground">
+                    Thứ tự
+                  </div>
+
                   <button
-                    key={option.value}
                     type="button"
                     onClick={() => {
-                      setSortBy(option.value);
+                      setSortOrder("desc");
                       setCurrentPage(1);
                       setIsSortMenuOpen(false);
                     }}
                     className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-muted ${
-                      sortBy === option.value
+                      sortOrder === "desc"
                         ? "bg-accent text-accent-foreground"
                         : "text-foreground"
                     }`}
                   >
-                    {option.label}
-                    {sortBy === option.value ? (
+                    {orderPrimaryLabel}
+                    {sortOrder === "desc" ? (
                       <Check className="h-4 w-4" />
                     ) : null}
                   </button>
-                ))}
 
-                <div className="border-t border-border px-4 py-2 text-sm text-muted-foreground">
-                  Order
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortOrder("asc");
+                      setCurrentPage(1);
+                      setIsSortMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-muted ${
+                      sortOrder === "asc"
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {orderSecondaryLabel}
+                    {sortOrder === "asc" ? <Check className="h-4 w-4" /> : null}
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortOrder("desc");
-                    setCurrentPage(1);
-                    setIsSortMenuOpen(false);
-                  }}
-                  className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-muted ${
-                    sortOrder === "desc"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {orderPrimaryLabel}
-                  {sortOrder === "desc" ? <Check className="h-4 w-4" /> : null}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortOrder("asc");
-                    setCurrentPage(1);
-                    setIsSortMenuOpen(false);
-                  }}
-                  className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm hover:bg-muted ${
-                    sortOrder === "asc"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {orderSecondaryLabel}
-                  {sortOrder === "asc" ? <Check className="h-4 w-4" /> : null}
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -391,51 +361,29 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Loading scan history...
+                Đang tải lịch sử phân tích...
               </div>
             </div>
           ) : error ? (
             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-8 text-center">
               <h3 className="mb-1 text-base font-bold text-foreground">
-                Unable to load scan history
+                Không thể tải lịch sử phân tích
               </h3>
               <p className="text-sm text-muted-foreground">
                 {getUserFacingErrorMessage(error)}
               </p>
             </div>
           ) : !hasHistory ? (
-            <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
-              <div className="relative mx-auto mb-4 h-16 w-16">
-                <div className="absolute left-1 top-1 h-12 w-10 space-y-0.5 rounded border border-border bg-card p-1.5">
-                  <div className="h-1 w-full rounded bg-border/70" />
-                  <div className="h-1 w-full rounded bg-border/70" />
-                  <div className="h-1 w-2/3 rounded bg-border/70" />
-                </div>
-                <div className="absolute -top-1 left-4 h-12 w-10 space-y-0.5 rounded border border-border bg-card p-1.5">
-                  <div className="mb-1 rounded bg-primary px-1 text-[7px] font-bold text-primary-foreground">
-                    TOP MATCH
-                  </div>
-                  <div className="h-1 w-full rounded bg-primary opacity-40" />
-                  <div className="h-1 w-full rounded bg-border/70" />
-                  <div className="h-1 w-2/3 rounded bg-border/70" />
-                </div>
-                <div className="absolute -right-1 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
-                  <ArrowRight className="h-3 w-3 text-primary-foreground" />
-                </div>
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-10 text-center">
+              <div className="mx-auto mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Search className="h-5 w-5" />
               </div>
-              <h3 className="mb-1 text-base font-bold text-foreground">
-                No scan history yet
+              <h3 className="text-base font-bold text-foreground">
+                Không tìm thấy lịch sử phân tích nào
               </h3>
-              <p className="mx-auto mb-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-                Run a scan to start tracking match results.
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                Tải lên một CV để bắt đầu so khớp việc làm.
               </p>
-              <button
-                type="button"
-                onClick={onScanResume}
-                className="cursor-pointer text-sm font-semibold text-foreground hover:underline"
-              >
-                + Start First Scan
-              </button>
             </div>
           ) : (
             <>
@@ -445,11 +393,11 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                     <thead>
                       <tr className="border-b border-border bg-background/50 text-left text-sm font-semibold text-foreground">
                         <th className="w-[140px] px-5 py-3 text-center">
-                          Match score
+                          Điểm phù hợp
                         </th>
-                        <th className="w-[280px] px-4 py-3">Resume</th>
-                        <th className="px-4 py-3">Target job</th>
-                        <th className="w-[160px] px-4 py-3">Scan date</th>
+                        <th className="w-[280px] px-4 py-3">CV</th>
+                        <th className="px-4 py-3">Vị trí</th>
+                        <th className="w-[160px] px-4 py-3">Ngày phân tích</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -494,11 +442,11 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                                 <Search className="h-5 w-5" />
                               </div>
                               <p className="text-base font-semibold text-foreground">
-                                No scan history found
+                                Không tìm thấy lịch sử phân tích
                               </p>
                               <p className="mt-1 text-sm text-muted-foreground">
-                                Try a different keyword or clear your search to
-                                see all reports.
+                                Thử từ khóa khác hoặc xóa tìm kiếm để xem tất cả
+                                báo cáo.
                               </p>
                               <button
                                 type="button"
@@ -508,7 +456,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                                 }}
                                 className="mt-4 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted"
                               >
-                                Clear search
+                                Xóa tìm kiếm
                               </button>
                             </div>
                           </td>
@@ -521,7 +469,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
 
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <p className="text-muted-foreground">
-                  Showing {fromItem}-{toItem} of {totalItems}
+                  Hiển thị {fromItem}-{toItem} trong số {totalItems}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -532,7 +480,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                       setCurrentPage((prev) => Math.max(1, prev - 1))
                     }
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Previous page"
+                    aria-label="Trang trước"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -546,7 +494,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                     }
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Next page"
+                    aria-label="Trang tiếp theo"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -560,7 +508,7 @@ export function ScanHistorySection({ onScanResume }: ScanHistorySectionProps) {
       {isSortMenuOpen && (
         <button
           type="button"
-          aria-label="Close sort menu"
+          aria-label="Đóng menu sắp xếp"
           onClick={() => setIsSortMenuOpen(false)}
           className="fixed inset-0 z-10 cursor-default"
         />

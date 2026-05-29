@@ -25,10 +25,8 @@ import type {
 } from "@/features/jobs/model/jobs.model";
 import { FilterSelect, type SelectOption } from "@/shared/ui/filter-select";
 import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
-import {
-  formatEmploymentType,
-  formatJobLevel,
-} from "@/shared/lib/job-format";
+import { formatRelativeDate } from "@/shared/lib/date";
+import { formatEmploymentType, formatJobLevel } from "@/shared/lib/job-format";
 import { JOB_TYPE_OPTIONS } from "@/shared/lib/job-options";
 
 type SearchMode = "keyword" | "resume";
@@ -43,72 +41,53 @@ type DropdownName =
 type PaginationItem = number | "...";
 
 type JobsBrowserProps = {
-  hasScan: boolean;
-  title: string;
-  description: string;
   onCreateScan?: () => void;
 };
 
 const PAGE_SIZE = 6;
 
 const DATE_OPTIONS: Array<{ value: JobDateRangeOption; label: string }> = [
-  { value: "ANY", label: "Any time" },
-  { value: "D3", label: "Last 3 days" },
-  { value: "D7", label: "Last week" },
-  { value: "D30", label: "Last month" },
+  { value: "ANY", label: "Mọi thời điểm" },
+  { value: "D3", label: "3 ngày gần đây" },
+  { value: "D7", label: "Tuần gần đây" },
+  { value: "D30", label: "Tháng gần đây" },
 ];
 
 const EXPERIENCE_OPTIONS: Array<{
   value: ExperienceFilterOption;
   label: string;
 }> = [
-  { value: "ALL", label: "All" },
-  { value: "UNDER_1", label: "Under 1 year" },
-  { value: "Y1_2", label: "1-2 years" },
-  { value: "Y3_5", label: "3-5 years" },
-  { value: "Y5_PLUS", label: "5+ years" },
+  { value: "ALL", label: "Tất cả" },
+  { value: "UNDER_1", label: "Dưới 1 năm" },
+  { value: "Y1_2", label: "1-2 năm" },
+  { value: "Y3_5", label: "3-5 năm" },
+  { value: "Y5_PLUS", label: "Trên 5 năm" },
 ];
 
 const SORT_OPTIONS: Array<{ value: JobSortOption; label: string }> = [
-  { value: "RELEVANCE", label: "Relevance" },
-  { value: "DATE", label: "Date" },
+  { value: "RELEVANCE", label: "Liên quan" },
+  { value: "DATE", label: "Ngày đăng" },
 ];
 
 const MODE_OPTIONS: Array<SelectOption<SearchMode>> = [
   {
     value: "keyword",
-    label: "Search by keyword",
-    description: "Find roles by title, skill, or company.",
+    label: "Tìm theo từ khóa",
+    description: "Tìm việc theo chức danh, kỹ năng hoặc công ty.",
     icon: <Search className="h-4 w-4" />,
   },
   {
     value: "resume",
-    label: "Use my resume",
-    description: "Rank roles by CV fit.",
+    label: "Dùng CV của tôi",
+    description: "Xếp hạng việc làm theo mức độ phù hợp với CV.",
     icon: <FileText className="h-4 w-4" />,
   },
 ];
 
-function formatRelativeDate(value?: string | null) {
-  if (!value) return "Recently added";
-
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "Recently added";
-
-  const diffDays = Math.max(
-    0,
-    Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)),
-  );
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "1 day ago";
-  return `${diffDays} days ago`;
-}
-
 function formatSalary(job: JobItem): string {
   const { salaryMin, salaryMax, currency = "" } = job;
 
-  if (salaryMin == null && salaryMax == null) return "Negotiable";
+  if (salaryMin == null && salaryMax == null) return "Thỏa thuận";
 
   const format = (value: number) => new Intl.NumberFormat().format(value);
   const prefix = currency ? `${currency} ` : "";
@@ -118,7 +97,7 @@ function formatSalary(job: JobItem): string {
   }
 
   if (salaryMin != null) return `${prefix}${format(salaryMin)}+`;
-  return `${prefix}Up to ${format(salaryMax!)}`;
+  return `${prefix}Tối đa ${format(salaryMax!)}`;
 }
 
 function formatApplicationDeadline(value?: string | null) {
@@ -127,9 +106,9 @@ function formatApplicationDeadline(value?: string | null) {
   const timestamp = new Date(value).getTime();
   if (Number.isNaN(timestamp)) return null;
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   }).format(new Date(timestamp));
 }
@@ -269,7 +248,7 @@ function JobListItem({
       }`}
     >
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-black text-primary">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-extrabold text-primary">
           {job.company.name.slice(0, 2).toUpperCase()}
         </div>
         <div className="min-w-0 flex-1">
@@ -324,11 +303,7 @@ function JobListItem({
   );
 }
 
-export function JobsBrowser({
-  title,
-  description,
-  onCreateScan,
-}: JobsBrowserProps) {
+export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
   const navigate = useNavigate();
   const { user } = useSession();
   const initialSearchParams = new URLSearchParams(window.location.search);
@@ -367,7 +342,7 @@ export function JobsBrowser({
         value: String(cv.cvId),
         label: cv.fileName,
         description: cv.uploadedAt
-          ? `Uploaded ${formatRelativeDate(cv.uploadedAt).toLowerCase()}`
+          ? `Tải lên ${formatRelativeDate(cv.uploadedAt).toLowerCase()}`
           : undefined,
         icon: <FileText className="h-4 w-4" />,
       })),
@@ -491,9 +466,9 @@ export function JobsBrowser({
   const applicationDeadlineText = formatApplicationDeadline(
     selectedJob?.applicationDeadline,
   );
-  const modeLabel = effectiveSearchMode === "keyword" ? "Keywords" : "Resume";
+  const modeLabel = effectiveSearchMode === "keyword" ? "Từ khóa" : "Theo CV";
   const cvLabel =
-    selectedCv?.fileName ?? (isLoadingCvs ? "Loading CVs" : "Choose CV");
+    selectedCv?.fileName ?? (isLoadingCvs ? "Đang tải CV" : "Chọn CV");
   const modeLeadingIcon =
     effectiveSearchMode === "keyword" ? (
       <Search className="h-4 w-4" />
@@ -502,46 +477,33 @@ export function JobsBrowser({
     );
   const dateLabel =
     dateRange === "ANY"
-      ? "Date range"
-      : getFilterButtonLabel(dateRange, "Date range", DATE_OPTIONS);
+      ? "Thời gian đăng"
+      : getFilterButtonLabel(dateRange, "Thời gian đăng", DATE_OPTIONS);
   const employmentTypeLabel =
     employmentType === "ALL"
-      ? "Employment type"
+      ? "Hình thức làm việc"
       : getFilterButtonLabel(
           employmentType,
-          "Employment type",
+          "Hình thức làm việc",
           JOB_TYPE_OPTIONS,
         );
   const experienceLabel =
     experienceRange === "ALL"
-      ? "Years of experience"
+      ? "Số năm kinh nghiệm"
       : getFilterButtonLabel(
           experienceRange,
-          "Years of experience",
+          "Số năm kinh nghiệm",
           EXPERIENCE_OPTIONS,
         );
   const sortLabel =
     SORT_OPTIONS.find((option) => option.value === sortBy)?.label ??
-    "Relevance";
+    "Độ liên quan";
 
   return (
     <div className="mx-auto max-w-[1480px] space-y-5">
-      <section>
-        <div>
-          <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            Job discovery
-          </p>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            {title}
-          </h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-            {description}
-          </p>
-        </div>
-      </section>
-
-      <PageCard className="p-5">
+      <PageCard
+        className={`p-5 ${openDropdown ? "relative z-30" : "relative"}`}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <FilterSelect
             label={modeLabel}
@@ -553,7 +515,7 @@ export function JobsBrowser({
             onSelect={(value) => handleSearchModeChange(value)}
             selectedValue={effectiveSearchMode}
             menuWidthClass="w-[420px]"
-            buttonClassName="h-10 min-w-[120px] text-sm"
+            buttonClassName="h-10 min-w-[132px] justify-between text-sm"
           />
 
           <form
@@ -561,14 +523,14 @@ export function JobsBrowser({
               event.preventDefault();
               handleKeywordSearch();
             }}
-            className="grid min-w-0 flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(320px,2fr)_220px_110px]"
+            className="grid min-w-0 flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(220px,2fr)_minmax(170px,220px)_110px]"
           >
             <div className="min-w-0">
               {isKeywordMode ? (
                 <input
                   value={keywordInput}
                   onChange={(event) => setKeywordInput(event.target.value)}
-                  placeholder="Job title, keywords, or company"
+                  placeholder="Chức danh, từ khóa hoặc công ty"
                   className="h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                 />
               ) : (
@@ -597,7 +559,7 @@ export function JobsBrowser({
               <input
                 value={locationInput}
                 onChange={(event) => setLocationInput(event.target.value)}
-                placeholder="Location"
+                placeholder="Địa điểm"
                 className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
               />
             </div>
@@ -606,7 +568,7 @@ export function JobsBrowser({
               type="submit"
               className="h-10 w-full rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
-              Search
+              Tìm kiếm
             </button>
           </form>
         </div>
@@ -662,7 +624,7 @@ export function JobsBrowser({
             onClick={handleClearAll}
             className="rounded-md px-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            Clear all
+            Xóa bộ lọc
           </button>
 
           <div className="ml-auto">
@@ -688,37 +650,41 @@ export function JobsBrowser({
 
       {effectiveSearchMode === "resume" && cvs.length === 0 && !isLoadingCvs ? (
         <EmptyResults
-          title="No CVs uploaded yet"
-          description="Upload a CV to rank jobs by fit."
-          actionLabel="Upload CV"
+          title="Chưa có CV nào"
+          description="Tải CV lên để xếp hạng việc làm theo mức độ phù hợp."
+          actionLabel="Tải CV lên"
           onAction={handleCreateScan}
         />
-      ) : effectiveSearchMode === "resume" &&
-        effectiveSelectedCvId === null ? (
-        <EmptyResults title="Choose a CV" description="Pick a CV to rank jobs." />
+      ) : effectiveSearchMode === "resume" && effectiveSelectedCvId === null ? (
+        <EmptyResults
+          title="Chọn CV"
+          description="Chọn một CV để xếp hạng việc làm."
+        />
       ) : loading ? (
         <PageCard className="flex min-h-[320px] items-center justify-center">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            Loading jobs...
+            Đang tải việc làm...
           </div>
         </PageCard>
       ) : error ? (
         <EmptyResults
-          title="Unable to load jobs"
+          title="Không thể tải việc làm"
           description={getUserFacingErrorMessage(error)}
-          actionLabel="Try again"
+          actionLabel="Thử lại"
           onAction={handleKeywordSearch}
         />
       ) : jobs.length === 0 ? (
         <EmptyResults
-          title="No jobs found"
+          title="Không tìm thấy việc làm"
           description={
             effectiveSearchMode === "keyword"
-              ? "Try a different keyword or location to see more jobs."
-              : "No matches for this CV yet."
+              ? "Thử từ khóa hoặc địa điểm khác để xem thêm việc làm."
+              : "Chưa có việc làm phù hợp với CV này."
           }
-          actionLabel={effectiveSearchMode === "keyword" ? "Clear search" : undefined}
+          actionLabel={
+            effectiveSearchMode === "keyword" ? "Xóa tìm kiếm" : undefined
+          }
           onAction={
             effectiveSearchMode === "keyword"
               ? () => {
@@ -736,10 +702,10 @@ export function JobsBrowser({
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
               <p>
-                Showing {jobs.length} of {totalCount} jobs
+                Hiển thị {jobs.length}/{totalCount} việc làm
               </p>
               <p>
-                Page {currentPage} of {totalPages}
+                Trang {currentPage}/{totalPages}
               </p>
             </div>
 
@@ -811,7 +777,7 @@ export function JobsBrowser({
                         selectedJob.postedAt ?? selectedJob.scrapedAt,
                       )}
                     </p>
-                    <h2 className="text-xl font-black text-foreground">
+                    <h2 className="text-xl font-extrabold text-foreground">
                       {selectedJob.title}
                     </h2>
                     <p className="mt-1 text-sm font-semibold text-muted-foreground">
@@ -823,15 +789,15 @@ export function JobsBrowser({
                 <div className="grid gap-2 text-sm md:grid-cols-2">
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Location
+                      Địa điểm
                     </p>
                     <p className="mt-1 text-foreground">
-                      {selectedJob.location ?? "Not provided"}
+                      {selectedJob.location ?? "Chưa cập nhật"}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Level
+                      Cấp bậc
                     </p>
                     <p className="mt-1 text-foreground">
                       {formatJobLevel(selectedJob.level)}
@@ -839,7 +805,7 @@ export function JobsBrowser({
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Job type
+                      Hình thức
                     </p>
                     <p className="mt-1 text-foreground">
                       {formatEmploymentType(selectedJob.employmentType)}
@@ -847,7 +813,7 @@ export function JobsBrowser({
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Salary
+                      Mức lương
                     </p>
                     <p className="mt-1 text-foreground">
                       {formatSalary(selectedJob)}
@@ -855,18 +821,18 @@ export function JobsBrowser({
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Experience
+                      Kinh nghiệm
                     </p>
                     <p className="mt-1 text-foreground">
-                      {experienceText ?? "Not provided"}
+                      {experienceText ?? "Chưa cập nhật"}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      Deadline
+                      Hạn ứng tuyển
                     </p>
                     <p className="mt-1 text-foreground">
-                      {applicationDeadlineText ?? "Not provided"}
+                      {applicationDeadlineText ?? "Chưa cập nhật"}
                     </p>
                   </div>
                 </div>
@@ -890,8 +856,8 @@ export function JobsBrowser({
                     }
                     className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-primary hover:bg-muted"
                   >
-                    <FileText className="h-4 w-4" />
-                    Scan
+                    <Sparkles className="h-4 w-4" />
+                    Phân tích
                   </button>
                   <a
                     href={selectedJob.sourceUrl}
@@ -900,14 +866,14 @@ export function JobsBrowser({
                     className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Apply
+                    Ứng tuyển
                   </a>
                 </div>
               </PageCard>
 
               <PageCard className="p-5">
                 <h3 className="mb-3 text-base font-bold text-foreground">
-                  Skills
+                  Kỹ năng
                 </h3>
                 {skills.length ? (
                   <div className="flex flex-wrap gap-2">
@@ -922,27 +888,27 @@ export function JobsBrowser({
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    No skills listed.
+                    Chưa có kỹ năng nào.
                   </p>
                 )}
               </PageCard>
 
               <PageCard className="p-5">
                 <h3 className="mb-3 text-base font-bold text-foreground">
-                  Job Snapshot
+                  Mô tả công việc
                 </h3>
                 <div className="space-y-4 text-sm leading-6 text-foreground">
                   {[
                     {
-                      title: "Responsibilities",
+                      title: "Trách nhiệm",
                       items: responsibilities,
                     },
                     {
-                      title: "Qualifications",
+                      title: "Yêu cầu",
                       items: qualifications,
                     },
                     {
-                      title: "Benefits",
+                      title: "Quyền lợi",
                       items: benefits,
                     },
                   ].map((section) => (
@@ -953,14 +919,12 @@ export function JobsBrowser({
                       {section.items.length ? (
                         <ul className="mt-1 space-y-1 text-muted-foreground">
                           {section.items.slice(0, 5).map((item) => (
-                            <li key={item}>
-                              {item}
-                            </li>
+                            <li key={item}>{item}</li>
                           ))}
                         </ul>
                       ) : (
                         <p className="mt-1 text-muted-foreground">
-                          Not provided.
+                          Chưa cập nhật.
                         </p>
                       )}
                     </div>
@@ -975,7 +939,7 @@ export function JobsBrowser({
       {openDropdown ? (
         <button
           type="button"
-          aria-label="Close dropdown menu"
+          aria-label="Đóng menu"
           onClick={closeDropdown}
           className="fixed inset-0 z-10 cursor-default"
         />

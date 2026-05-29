@@ -9,7 +9,6 @@ import {
   Loader2,
   RefreshCcw,
   Search,
-  Sparkles,
   Star,
   Trash2,
   ChevronLeft,
@@ -23,7 +22,6 @@ import {
   useDeleteCv,
   useRenameCv,
   useSetBaseCv,
-  useUploadCv,
   useUserCvs,
   type UploadedCv,
 } from "@/features/cv/model/cv.model";
@@ -31,14 +29,14 @@ import { getUserFacingErrorMessage } from "@/shared/api/graphql/error-message";
 import { useSession } from "@/features/auth/session/session.model";
 
 function formatUploadDate(value?: string | null) {
-  if (!value) return "Unknown date";
+  if (!value) return "Không rõ ngày";
 
   const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "Unknown date";
+  if (Number.isNaN(timestamp)) return "Không rõ ngày";
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   }).format(new Date(timestamp));
 }
@@ -99,7 +97,7 @@ function MetricCard({
         <div className="min-w-0">
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
           <p
-            className="mt-2 line-clamp-2 break-words text-2xl font-bold tracking-tight text-foreground"
+            className="mt-2 text-xl font-bold tracking-tight text-foreground"
             title={String(value)}
           >
             {value}
@@ -118,7 +116,6 @@ export function ResumeManagerPage() {
   const navigate = useNavigate();
   const { cvs, loading, error, refetch } = useUserCvs();
   const { items: analysisHistory } = useCvAnalysisHistory();
-  const { uploadCv, isUploading } = useUploadCv();
   const { getCvFile, isGettingCvFile } = useCvFile();
   const { deleteCv, isDeleting } = useDeleteCv();
   const { renameCv, isRenaming } = useRenameCv();
@@ -160,7 +157,7 @@ export function ResumeManagerPage() {
 
     return latestTimestamp
       ? formatUploadDate(new Date(latestTimestamp).toISOString())
-      : "None";
+      : "--";
   }, [cvs]);
   const latestJobByFilename = useMemo(() => {
     const jobMap = new Map<string, string>();
@@ -185,37 +182,20 @@ export function ResumeManagerPage() {
     [baseCvId, cvs],
   );
 
-  const handleUpload = async (file?: File) => {
-    if (!file) return;
-
-    try {
-      await uploadCv(file);
-      showToast("Upload complete", {
-        description: "Your resume is ready to use.",
-      });
-      await refetch();
-    } catch {
-      showToast("Upload failed", {
-        description: "Please try again with another file.",
-        variant: "error",
-      });
-    }
-  };
-
   const handleDelete = async () => {
     if (!deleteTarget) return;
 
     try {
       const deleted = await deleteCv(Number(deleteTarget.cvId));
       if (deleted) {
-        showToast("Resume deleted", {
-          description: "It has been removed from your library.",
+        showToast("Đã xóa CV", {
+          description: "CV này đã được xóa khỏi thư viện của bạn.",
         });
       }
       setDeleteTarget(null);
     } catch {
-      showToast("Delete failed", {
-        description: "Please try again in a moment.",
+      showToast("Không thể xóa CV", {
+        description: "Vui lòng thử lại sau ít phút.",
         variant: "error",
       });
     }
@@ -252,8 +232,8 @@ export function ResumeManagerPage() {
       window.setTimeout(() => URL.revokeObjectURL(viewUrl), 60_000);
     } catch {
       viewWindow?.close();
-      showToast("Could not open resume", {
-        description: "Please try again in a moment.",
+      showToast("Không thể mở CV", {
+        description: "Vui lòng thử lại sau ít phút.",
         variant: "error",
       });
     }
@@ -271,10 +251,10 @@ export function ResumeManagerPage() {
         shouldUnset ? null : Number(cv.cvId),
       );
       setOptimisticBaseCvId(nextBaseCvId ? String(nextBaseCvId) : null);
-      showToast(shouldUnset ? "Base resume removed" : "Base resume updated");
+      showToast(shouldUnset ? "Đã xóa CV chính" : "Đã cập nhật CV chính");
     } catch {
-      showToast("Could not update base resume", {
-        description: "Please try again in a moment.",
+      showToast("Không thể cập nhật CV chính", {
+        description: "Vui lòng thử lại sau ít phút.",
         variant: "error",
       });
     }
@@ -299,83 +279,52 @@ export function ResumeManagerPage() {
 
     try {
       await renameCv(Number(cv.cvId), nextName);
-      showToast("Resume renamed", {
-        description: "Your change has been saved.",
+      showToast("Đã đổi tên CV", {
+        description: "Thay đổi của bạn đã được lưu.",
       });
       cancelRename();
     } catch {
-      showToast("Rename failed", {
-        description: "Please try again in a moment.",
+      showToast("Không thể đổi tên CV", {
+        description: "Vui lòng thử lại sau ít phút.",
         variant: "error",
       });
     }
   };
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Quản lý CV"
+      headerDescription="Lưu trữ các CV đã tải lên, chọn CV chính và sử dụng phiên bản phù hợp cho từng lần ứng tuyển."
+    >
       <div className="mx-auto max-w-[1480px] space-y-5">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Resume library
-            </p>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              Resume Manager
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Manage your resume files, choose a base resume, and use the right
-              CV for each job search.
-            </p>
-          </div>
-
-          <label className="inline-flex h-10 w-fit cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-            {isUploading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <CloudUpload className="h-4 w-4" />
-            )}
-            {isUploading ? "Uploading..." : "Upload resume"}
-            <input
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt"
-              disabled={isUploading}
-              onChange={(event) => {
-                void handleUpload(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-          </label>
-        </section>
-
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Saved resumes"
+            label="CV đã tải lên"
             value={cvs.length}
-            note="Files ready for resume scans and job matching."
+            note="Các file CV sẵn sàng để phân tích và so khớp công việc."
             icon={FileText}
           />
           <MetricCard
-            label="Base resume"
+            label="CV chính"
             value={baseResume?.fileName ?? "--"}
             note={
               baseResume
-                ? "Used by default for job matching."
-                : "Choose the resume you want to match jobs with first."
+                ? "Được sử dụng mặc định cho việc khớp công việc."
+                : "Chọn CV bạn muốn sử dụng để khớp công việc."
             }
             icon={Star}
           />
           <MetricCard
-            label="Latest upload"
+            label="Ngày tải lên gần nhất"
             value={latestUploadDate}
-            note="Most recent resume added to your library."
+            note="CV được tải lên gần đây nhất."
             icon={CloudUpload}
           />
           <MetricCard
-            label="Supported files"
-            value="PDF"
-            note="PDF, DOC, DOCX, and TXT are supported."
+            label="Định dạng hỗ trợ"
+            value="PDF, DOC, DOCX và TXT"
+            note="Hỗ trợ PDF, DOC, DOCX và TXT."
             icon={CheckCircle2}
           />
         </section>
@@ -384,10 +333,10 @@ export function ResumeManagerPage() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-foreground">
-                Resume files
+                Danh sách CV
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Rename, preview, choose a base resume, or find matching jobs.
+                Đổi tên, xem trước, chọn CV chính, hoặc tìm việc làm phù hợp.
               </p>
             </div>
 
@@ -400,7 +349,7 @@ export function ResumeManagerPage() {
                     setSearchValue(event.target.value);
                     setCurrentPage(1);
                   }}
-                  placeholder="Search resumes"
+                  placeholder="Tìm kiếm CV"
                   className="h-10 w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
                 />
               </div>
@@ -410,7 +359,7 @@ export function ResumeManagerPage() {
                 className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted"
               >
                 <RefreshCcw className="h-4 w-4" />
-                Refresh
+                Làm mới
               </button>
             </div>
           </div>
@@ -418,13 +367,13 @@ export function ResumeManagerPage() {
             <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-dashed border-border bg-card">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Loading resumes...
+                Đang tải danh sách CV...
               </div>
             </div>
           ) : error ? (
             <div className="flex min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card p-10 text-center">
               <h3 className="text-base font-bold text-foreground">
-                Unable to load resumes
+                Không thể tải danh sách CV
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 {getUserFacingErrorMessage(error)}
@@ -436,10 +385,10 @@ export function ResumeManagerPage() {
                 <Search className="h-5 w-5" />
               </div>
               <h3 className="text-base font-bold text-foreground">
-                No resumes found
+                Không tìm thấy CV nào
               </h3>
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                Upload a CV to start matching jobs.
+                Tải lên một CV để bắt đầu so khớp việc làm.
               </p>
             </div>
           ) : (
@@ -449,13 +398,15 @@ export function ResumeManagerPage() {
                   <table className="w-full min-w-[960px] table-fixed">
                     <thead>
                       <tr className="border-b border-border bg-background/50 text-left text-sm font-semibold text-foreground">
-                        <th className="w-[88px] px-5 py-3">Base</th>
-                        <th className="w-[280px] px-4 py-3">Resume</th>
-                        <th className="px-4 py-3">Latest target job</th>
-                        <th className="w-[150px] px-4 py-3">Uploaded</th>
-                        <th className="w-[150px] px-4 py-3">Last Modified</th>
+                        <th className="w-[110px] px-5 py-3">CV chính</th>
+                        <th className="w-[280px] px-4 py-3">Tên CV</th>
+                        <th className="px-4 py-3">Vị trí</th>
+                        <th className="w-[150px] px-4 py-3">Ngày tải lên</th>
+                        <th className="w-[150px] px-4 py-3">
+                          Sửa đổi lần cuối
+                        </th>
                         <th className="w-[150px] px-4 py-3 text-right">
-                          Actions
+                          Hành động
                         </th>
                       </tr>
                     </thead>
@@ -473,8 +424,8 @@ export function ResumeManagerPage() {
                               className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                               title={
                                 baseCvId === String(cv.cvId)
-                                  ? "Remove base resume"
-                                  : "Set as base resume"
+                                  ? "Xóa CV chính"
+                                  : "Đặt làm CV chính"
                               }
                             >
                               <Star
@@ -510,7 +461,7 @@ export function ResumeManagerPage() {
                               ) : (
                                 <button
                                   type="button"
-                                  title="Rename"
+                                  title="Đổi tên"
                                   onClick={() => startRename(cv)}
                                   className="block max-w-full truncate text-left text-sm font-semibold text-foreground hover:text-primary"
                                 >
@@ -519,7 +470,7 @@ export function ResumeManagerPage() {
                               )}
                               {baseCvId === String(cv.cvId) ? (
                                 <p className="mt-1 truncate text-xs text-primary">
-                                  Base resume
+                                  CV chính
                                 </p>
                               ) : null}
                             </div>
@@ -542,7 +493,7 @@ export function ResumeManagerPage() {
                                 onClick={() => void handleViewCv(cv)}
                                 disabled={isGettingCvFile}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                                title="Open"
+                                title="Mở CV"
                               >
                                 <Eye className="h-4 w-4" />
                               </button>
@@ -551,7 +502,7 @@ export function ResumeManagerPage() {
                                 onClick={() => handleMatchJobs(cv)}
                                 disabled={isSettingBaseCv}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                                title="Match jobs"
+                                title="So khớp với việc làm"
                               >
                                 <BriefcaseBusiness className="h-4 w-4" />
                               </button>
@@ -560,7 +511,7 @@ export function ResumeManagerPage() {
                                 onClick={() => setDeleteTarget(cv)}
                                 disabled={isDeleting}
                                 className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                                title="Delete"
+                                title="Xóa"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -575,7 +526,7 @@ export function ResumeManagerPage() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <p className="text-muted-foreground">
-                  Showing {fromItem}-{toItem} of {totalItems}
+                  Hiển thị {fromItem}-{toItem} trong số {totalItems}
                 </p>
 
                 <div className="flex items-center gap-2">
@@ -586,7 +537,7 @@ export function ResumeManagerPage() {
                       setCurrentPage((prev) => Math.max(1, prev - 1))
                     }
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Previous page"
+                    aria-label="Trang trước"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
@@ -600,7 +551,7 @@ export function ResumeManagerPage() {
                       setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                     }
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
-                    aria-label="Next page"
+                    aria-label="Trang tiếp theo"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </button>
@@ -614,11 +565,9 @@ export function ResumeManagerPage() {
       {deleteTarget ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
-            <h3 className="text-lg font-bold text-foreground">
-              Delete resume?
-            </h3>
+            <h3 className="text-lg font-bold text-foreground">Xóa CV?</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This removes {deleteTarget.fileName} from your library.
+              Điều này sẽ xóa {deleteTarget.fileName} khỏi thư viện của bạn.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -626,7 +575,7 @@ export function ResumeManagerPage() {
                 onClick={() => setDeleteTarget(null)}
                 className="h-9 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-background"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 type="button"
@@ -637,7 +586,7 @@ export function ResumeManagerPage() {
                 {isDeleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
-                Delete
+                Xóa
               </button>
             </div>
           </div>

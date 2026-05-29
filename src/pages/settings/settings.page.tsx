@@ -7,7 +7,6 @@ import {
   Plus,
   Save,
   Search,
-  Sparkles,
   Target,
   Trash2,
   X,
@@ -256,19 +255,19 @@ export function SettingsPage() {
           },
         },
       });
-      setStatusMessage("Profile saved.");
+      setStatusMessage("Hồ sơ đã được lưu.");
     } catch (error) {
       console.error("Profile save error:", error);
       const message =
         error instanceof Error && error.message
           ? error.message
-          : "Could not save profile.";
+          : "Không thể lưu hồ sơ.";
       setStatusMessage(message);
     }
   };
 
   const isAvatarUploading = isPreparingAvatarUpload || isConfirmingAvatarUpload;
-  const displayName = profile.fullName || "User";
+  const displayName = profile.fullName || "Người dùng";
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
   const selectedSkillNames = useMemo(
     () => new Set(profile.skills.map((skill) => skill.toLowerCase())),
@@ -313,7 +312,7 @@ export function SettingsPage() {
       id: createExperienceId(),
       title: "",
       organization: "",
-      type: "WORK",
+      type: "FULL_TIME",
       startDate: "",
       endDate: "",
       isCurrent: false,
@@ -407,7 +406,7 @@ export function SettingsPage() {
     setAvatarUploadMessage(null);
 
     if (!file.type.startsWith("image/")) {
-      setAvatarUploadMessage("Please choose an image file.");
+      setAvatarUploadMessage("Vui lòng chọn tệp hình ảnh.");
       return;
     }
 
@@ -427,7 +426,7 @@ export function SettingsPage() {
       )?.getAvatarUploadUrl;
 
       if (!uploadTarget) {
-        setAvatarUploadMessage("Could not prepare avatar upload.");
+        setAvatarUploadMessage("Không thể chuẩn bị tải lên ảnh đại diện.");
         return;
       }
 
@@ -440,17 +439,19 @@ export function SettingsPage() {
       });
 
       if (!uploadResponse.ok) {
-        setAvatarUploadMessage("Avatar upload to storage failed.");
+        setAvatarUploadMessage("Tải lên ảnh đại diện thất bại.");
         return;
       }
 
       await confirmAvatarUpload({
         variables: { fileKey: uploadTarget.fileKey },
       });
-      setAvatarUploadMessage("Avatar updated.");
+      setAvatarUploadMessage("Ảnh đại diện đã được cập nhật.");
     } catch (error) {
-      console.error("Avatar upload error:", error);
-      setAvatarUploadMessage("Avatar update failed. Please try again.");
+      console.error("Lỗi tải lên ảnh đại diện:", error);
+      setAvatarUploadMessage(
+        "Cập nhật ảnh đại diện thất bại. Vui lòng thử lại.",
+      );
     }
   };
 
@@ -466,37 +467,27 @@ export function SettingsPage() {
   ].filter(Boolean).length;
 
   return (
-    <AppShell fullWidth>
-      <div className="mx-auto max-w-[1480px] space-y-5">
-        <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Account data
-            </p>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              Settings
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Manage the information used to personalize your job matches and
-              recommendations.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {statusMessage ? (
-              <span className="text-sm font-medium text-muted-foreground">
-                {statusMessage}
-              </span>
-            ) : null}
-            <button
-              onClick={saveProfile}
-              disabled={isSaving}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Save className="h-4 w-4" />
-              {isSaving ? "Saving..." : "Save profile"}
-            </button>
-          </div>
+    <AppShell
+      fullWidth
+      headerTitle="Cập nhật hồ sơ"
+      headerDescription="Chỉnh sửa thông tin cá nhân, kỹ năng và mục tiêu nghề nghiệp để nhận đề xuất chính xác hơn."
+    >
+      <div className="mx-auto max-w-[1480px]">
+        <section className="flex items-center justify-end gap-4 mb-5">
+          {statusMessage ? (
+            <span className="text-sm font-medium text-muted-foreground">
+              {statusMessage}
+            </span>
+          ) : null}
+
+          <button
+            onClick={saveProfile}
+            disabled={isSaving}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+          </button>
         </section>
 
         {/* Profile Information */}
@@ -506,12 +497,12 @@ export function SettingsPage() {
             <PageCard className="p-5">
               <SectionHeader
                 icon={User}
-                title="Avatar"
-                description="Upload a new profile photo."
+                title="Ảnh đại diện"
+                description="Cá nhân hóa hồ sơ của bạn."
               />
 
               <div className="flex flex-col items-center">
-                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-black text-primary">
+                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-5xl font-extrabold text-primary">
                   {avatarSrc ? (
                     <img
                       src={avatarSrc}
@@ -551,7 +542,9 @@ export function SettingsPage() {
                   className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-lg border border-primary/30 bg-card px-4 text-sm font-semibold text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
                   type="button"
                 >
-                  {isAvatarUploading ? "Uploading..." : "Change photo"}
+                  {isAvatarUploading
+                    ? "Đang tải lên..."
+                    : "Thay đổi ảnh đại diện"}
                 </button>
               </div>
             </PageCard>
@@ -559,23 +552,23 @@ export function SettingsPage() {
             {/* Profile summary */}
             <PageCard className="p-5">
               <h2 className="text-base font-bold text-foreground">
-                Profile summary
+                Tóm tắt hồ sơ
               </h2>
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Skills</span>
+                  <span className="text-muted-foreground">Kỹ năng</span>
                   <span className="font-semibold text-foreground">
                     {profile.skills.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Experiences</span>
+                  <span className="text-muted-foreground">Kinh nghiệm</span>
                   <span className="font-semibold text-foreground">
                     {profile.experiences.length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg bg-background/60 px-3 py-2">
-                  <span className="text-muted-foreground">Completeness</span>
+                  <span className="text-muted-foreground">Độ hoàn chỉnh</span>
                   <span className="font-semibold text-foreground">
                     {Math.round((completeness / 8) * 100)}%
                   </span>
@@ -587,8 +580,8 @@ export function SettingsPage() {
             <PageCard className="p-5">
               <SectionHeader
                 icon={LinkIcon}
-                title="Links and skills"
-                description="Add your professional links and key skills."
+                title="Liên kết và kỹ năng"
+                description="Thêm các liên kết và kỹ năng chính."
               />
               <div className="space-y-4">
                 <TextInput
@@ -614,7 +607,7 @@ export function SettingsPage() {
               </div>
               <div className="mt-4">
                 <span className="text-sm font-medium text-muted-foreground">
-                  Skills
+                  Kỹ năng
                 </span>
                 <div className="mt-2 rounded-xl border border-border bg-background p-3">
                   {profile.skills.length ? (
@@ -629,7 +622,7 @@ export function SettingsPage() {
                             type="button"
                             onClick={() => removeSkill(skill)}
                             className="rounded-md hover:bg-primary/10"
-                            aria-label={`Remove ${skill}`}
+                            aria-label={`Xóa ${skill}`}
                           >
                             <X className="h-3.5 w-3.5" />
                           </button>
@@ -644,7 +637,9 @@ export function SettingsPage() {
                       value={skillSearch}
                       onChange={(event) => setSkillSearch(event.target.value)}
                       placeholder={
-                        areSkillsLoading ? "Loading skills..." : "Search skills"
+                        areSkillsLoading
+                          ? "Đang tải kỹ năng..."
+                          : "Tìm kiếm kỹ năng"
                       }
                       className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
                     />
@@ -663,7 +658,7 @@ export function SettingsPage() {
                     ))}
                     {!areSkillsLoading && !skillOptions.length ? (
                       <span className="text-sm text-muted-foreground">
-                        No matching skills.
+                        Không có kỹ năng nào phù hợp.
                       </span>
                     ) : null}
                   </div>
@@ -678,42 +673,42 @@ export function SettingsPage() {
             <PageCard className="p-5">
               <SectionHeader
                 icon={User}
-                title="Profile Overview"
-                description="Your basic profile and career snapshot."
+                title="Tổng quan hồ sơ"
+                description="Thông tin cơ bản và định hướng nghề nghiệp của bạn."
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
-                  label="Full name"
+                  label="Họ và tên"
                   value={profile.fullName}
                   onChange={(value) => updateProfileField("fullName", value)}
-                  placeholder="Your name"
+                  placeholder="Họ và tên"
                 />
                 <TextInput
                   label="Email"
                   value={profile.email}
                   readOnly
-                  placeholder="Email is managed by authentication"
+                  placeholder="Email được quản lý bởi hệ thống"
                 />
                 <TextInput
-                  label="Phone"
+                  label="Số điện thoại"
                   value={profile.phone}
                   onChange={(value) => updateProfileField("phone", value)}
-                  placeholder="Phone number"
+                  placeholder="Số điện thoại"
                 />
                 <TextInput
-                  label="Location"
+                  label="Địa điểm"
                   value={profile.location}
                   onChange={(value) => updateProfileField("location", value)}
-                  placeholder="City, country"
+                  placeholder="Đà Nẵng, Việt Nam"
                 />
                 <TextInput
-                  label="Current role"
+                  label="Vị trí hiện tại"
                   value={profile.currentRole}
                   onChange={(value) => updateProfileField("currentRole", value)}
-                  placeholder="Backend Engineer"
+                  placeholder="Junior Backend Engineer"
                 />
                 <NumberInput
-                  label="Experience years"
+                  label="Số năm kinh nghiệm"
                   value={profile.experienceYears}
                   onChange={(value) =>
                     updateProfileField("experienceYears", value)
@@ -727,26 +722,26 @@ export function SettingsPage() {
             <PageCard className="p-5">
               <SectionHeader
                 icon={Target}
-                title="Career Goals"
-                description="Tell us what roles, locations, and goals you are aiming for."
+                title="Mục tiêu nghề nghiệp"
+                description="Hãy cho chúng tôi biết những vị trí, địa điểm và mục tiêu bạn đang hướng đến."
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
-                  label="Target role"
+                  label="Vị trí mục tiêu"
                   value={profile.careerGoals.targetRole || ""}
                   onChange={(value) => updateCareerGoal("targetRole", value)}
                   placeholder="Senior Backend Engineer"
                 />
                 <TextInput
-                  label="Preferred location"
+                  label="Địa điểm mong muốn"
                   value={profile.careerGoals.preferredLocation || ""}
                   onChange={(value) =>
                     updateCareerGoal("preferredLocation", value)
                   }
-                  placeholder="Ho Chi Minh City"
+                  placeholder="Hà Nội, Việt Nam"
                 />
                 <NumberInput
-                  label="Expected salary min (M VND)"
+                  label="Mức lương mong muốn tối thiểu (triệu VND)"
                   value={profile.targetSalaryMin}
                   onChange={(value) =>
                     updateProfileField("targetSalaryMin", value)
@@ -754,7 +749,7 @@ export function SettingsPage() {
                   placeholder="20"
                 />
                 <NumberInput
-                  label="Expected salary max (M VND)"
+                  label="Mức lương mong muốn tối đa (triệu VND)"
                   value={profile.targetSalaryMax}
                   onChange={(value) =>
                     updateProfileField("targetSalaryMax", value)
@@ -763,7 +758,7 @@ export function SettingsPage() {
                 />
                 <label className="block md:col-span-2">
                   <span className="text-sm font-medium text-muted-foreground">
-                    Work style
+                    Hình thức làm việc mong muốn
                   </span>
                   <select
                     value={profile.careerGoals.workStyle || profile.workStyle}
@@ -784,7 +779,7 @@ export function SettingsPage() {
                 </label>
                 <label className="block md:col-span-2">
                   <span className="text-sm font-medium text-muted-foreground">
-                    Goal
+                    Mục tiêu nghề nghiệp chi tiết
                   </span>
                   <textarea
                     value={profile.careerGoals.goal || ""}
@@ -792,7 +787,7 @@ export function SettingsPage() {
                       updateCareerGoal("goal", event.target.value)
                     }
                     rows={3}
-                    placeholder="Describe your career goal"
+                    placeholder="Mô tả mục tiêu nghề nghiệp của bạn"
                     className="mt-2 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
                   />
                 </label>
@@ -804,8 +799,8 @@ export function SettingsPage() {
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <SectionHeader
                   icon={BriefcaseBusiness}
-                  title="Experiences"
-                  description="Add work, internship, project, freelance, or education experience."
+                  title="Kinh nghiệm"
+                  description="Thêm kinh nghiệm làm việc, thực tập, dự án, tự do hoặc giáo dục."
                 />
                 <button
                   type="button"
@@ -813,7 +808,7 @@ export function SettingsPage() {
                   className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 text-sm font-semibold text-primary hover:bg-primary/15"
                 >
                   <Plus className="h-4 w-4" />
-                  Add experience
+                  Thêm kinh nghiệm
                 </button>
               </div>
 
@@ -834,13 +829,14 @@ export function SettingsPage() {
                         >
                           <div className="min-w-0">
                             <h3 className="truncate text-sm font-bold text-foreground">
-                              {experience.title || `Experience ${index + 1}`}
+                              {experience.title || `Kinh nghiệm ${index + 1}`}
                             </h3>
 
                             <p className="mt-1 truncate text-xs text-muted-foreground">
                               {[experience.organization, experience.type]
                                 .filter(Boolean)
-                                .join(" · ") || "Add organization and type"}
+                                .join(" · ") ||
+                                "Thêm tổ chức và loại kinh nghiệm"}
                             </p>
                           </div>
 
@@ -862,13 +858,13 @@ export function SettingsPage() {
                                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-destructive/20 bg-card px-2.5 text-sm font-semibold text-destructive hover:bg-destructive/10"
                               >
                                 <Trash2 className="h-4 w-4" />
-                                Remove
+                                Xóa
                               </button>
                             </div>
 
                             <div className="grid gap-4 md:grid-cols-2">
                               <TextInput
-                                label="Title"
+                                label="Vị trí / vai trò"
                                 value={experience.title}
                                 onChange={(value) =>
                                   updateExperience(
@@ -877,11 +873,11 @@ export function SettingsPage() {
                                     value,
                                   )
                                 }
-                                placeholder="Backend Engineer"
+                                placeholder="Junior Backend Engineer"
                               />
 
                               <TextInput
-                                label="Organization"
+                                label="Tổ chức"
                                 value={experience.organization}
                                 onChange={(value) =>
                                   updateExperience(
@@ -890,12 +886,12 @@ export function SettingsPage() {
                                     value,
                                   )
                                 }
-                                placeholder="Company or school"
+                                placeholder="Tên công ty, trường học, dự án, v.v."
                               />
 
                               <label className="block">
                                 <span className="text-sm font-medium text-muted-foreground">
-                                  Type
+                                  Hình thức
                                 </span>
                                 <select
                                   value={experience.type}
@@ -934,12 +930,12 @@ export function SettingsPage() {
                                   className="h-4 w-4 rounded border-border [accent-color:var(--primary)] focus:ring-primary/20"
                                 />
                                 <span className="text-sm font-medium text-foreground">
-                                  Current experience
+                                  Hiện tại đang làm việc ở đây
                                 </span>
                               </label>
 
                               <TextInput
-                                label="Start date"
+                                label="Ngày bắt đầu"
                                 value={experience.startDate || ""}
                                 onChange={(value) =>
                                   updateExperience(
@@ -952,7 +948,7 @@ export function SettingsPage() {
                               />
 
                               <TextInput
-                                label="End date"
+                                label="Ngày kết thúc"
                                 value={experience.endDate || ""}
                                 onChange={(value) =>
                                   updateExperience(
@@ -968,7 +964,7 @@ export function SettingsPage() {
 
                             <label className="mt-4 block">
                               <span className="text-sm font-medium text-muted-foreground">
-                                Description
+                                Mô tả
                               </span>
                               <textarea
                                 value={experience.description || ""}
@@ -987,7 +983,7 @@ export function SettingsPage() {
 
                             <label className="mt-4 block">
                               <span className="text-sm font-medium text-muted-foreground">
-                                Technologies
+                                Công nghệ / kỹ năng đã sử dụng
                               </span>
                               <input
                                 value={getTechnologyInputValue(experience)}
@@ -1012,7 +1008,7 @@ export function SettingsPage() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-dashed border-border bg-background/50 p-5 text-sm text-muted-foreground">
-                  No experiences saved yet.
+                  Chưa có kinh nghiệm nào được thêm.
                 </div>
               )}
             </PageCard>

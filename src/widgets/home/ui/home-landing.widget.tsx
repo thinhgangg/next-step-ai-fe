@@ -1,20 +1,33 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
   CheckCircle2,
   CircleAlert,
+  FileSearch,
   FileText,
-  Lightbulb,
+  ListChecks,
+  Map,
   MousePointerClick,
+  Rocket,
   Search,
-  Star,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  UploadCloud,
   WandSparkles,
-  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState, type ComponentType } from "react";
 import { BRAND } from "@/shared/config/brand";
+import {
+  SCORE_RING_TRACK_COLOR,
+  clampScore,
+  getScoreColor,
+  getScoreLabel,
+} from "@/shared/lib/score";
 import { useSession } from "@/features/auth/session/session.model";
-import { ScanWidget } from "./scan-widget";
 
 type SectionNavItem = {
   id: "features" | "how-it-works" | "pricing";
@@ -29,105 +42,339 @@ type FeatureItem = {
   description: string;
 };
 
-type TestimonialItem = {
+type StepItem = {
   id: string;
-  quote: string;
-  name: string;
-  role: string;
-  avatar: string;
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
 };
+
+type PricingItem = {
+  id: string;
+  name: string;
+  badge?: string;
+  price: string;
+  period?: string;
+  description: string;
+  cta: string;
+  highlighted?: boolean;
+  features: string[];
+};
+
+const sectionNavItems: SectionNavItem[] = [
+  { id: "how-it-works", label: "Cách hoạt động", href: "#how-it-works" },
+  { id: "features", label: "Tính năng", href: "#features" },
+  { id: "pricing", label: "Bảng giá", href: "#pricing" },
+];
+
+const heroHighlights = [
+  "So khớp CV với JD",
+  "Tìm kỹ năng còn thiếu",
+  "Gợi ý lộ trình cải thiện",
+];
 
 const features: FeatureItem[] = [
   {
     id: "feature-1",
-    icon: Search,
-    title: "ATS Keyword Scanner",
+    icon: FileSearch,
+    title: "Phân tích CV theo ngữ cảnh",
     description:
-      "Cross-reference your resume against ATS keyword patterns used by modern recruiters.",
+      "Không chỉ đếm từ khóa. NextStepAI đọc hồ sơ, hiểu kinh nghiệm, kỹ năng và cách bạn đang thể hiện năng lực.",
   },
   {
     id: "feature-2",
-    icon: Zap,
-    title: "Match Score",
+    icon: Target,
+    title: "So khớp với JD mục tiêu",
     description:
-      "Get a real-time score that predicts how likely your resume is to pass AI screening.",
+      "Đối chiếu CV với mô tả công việc cụ thể để biết phần nào đã khớp, phần nào còn yếu và phần nào nên viết rõ hơn.",
   },
   {
     id: "feature-3",
-    icon: CircleAlert,
-    title: "Missing Skills",
+    icon: ListChecks,
+    title: "Tách rõ kỹ năng khớp và thiếu",
     description:
-      "Identify hard and soft skills requested in job descriptions that are missing from your profile.",
+      "Hiển thị nhóm kỹ năng đã có bằng chứng trong CV, kỹ năng còn thiếu và kỹ năng cần bổ sung ví dụ thuyết phục hơn.",
   },
   {
     id: "feature-4",
     icon: WandSparkles,
-    title: "CV Formatting",
+    title: "Gợi ý cải thiện dễ làm theo",
     description:
-      "Keep your resume machine-readable with recommendations on spacing, structure, and clarity.",
+      "Nhận đề xuất viết lại nội dung, bổ sung dự án, làm rõ kết quả công việc và tránh các câu chung chung.",
   },
   {
     id: "feature-5",
-    icon: Lightbulb,
-    title: "Job-Specific Suggestions",
+    icon: Map,
+    title: "Lộ trình cải thiện kỹ năng cá nhân hóa",
     description:
-      "Receive tailored bullet point suggestions based on the exact role you are applying for.",
+      "Từ khoảng trống kỹ năng, hệ thống gợi ý thứ tự học hợp lý để bạn cải thiện hồ sơ thay vì học lan man.",
   },
   {
     id: "feature-6",
-    icon: MousePointerClick,
-    title: "One-click Optimizer",
+    icon: ShieldCheck,
+    title: "Báo cáo gọn, rõ việc cần làm",
     description:
-      "Refine your existing experience statements to align with role keywords and recruiter language.",
+      "Mỗi kết quả đều hướng đến câu hỏi: nên sửa gì, vì sao cần sửa và sửa theo hướng nào để tăng cơ hội phỏng vấn.",
   },
 ];
 
-const testimonials: TestimonialItem[] = [
+const steps: StepItem[] = [
   {
-    id: "testimonial-1",
-    quote:
-      "After months of rejection, " +
-      BRAND.name +
-      " showed me the exact skill gaps in my CV. I updated it and quickly got interviews.",
-    name: "Alex Rivera",
-    role: "Backend Engineer @ Vercel",
-    avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=80",
+    id: "step-1",
+    icon: UploadCloud,
+    title: "Tải CV lên",
+    description:
+      "Bắt đầu bằng CV hiện tại của bạn. Hệ thống sẽ trích xuất kỹ năng, kinh nghiệm và điểm nổi bật trong hồ sơ.",
   },
   {
-    id: "testimonial-2",
-    quote:
-      "The match score turned job applications into a clear optimization loop. I landed my next PM role faster than expected.",
-    name: "Sarah Chen",
-    role: "Product Manager @ Stripe",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80",
+    id: "step-2",
+    icon: FileText,
+    title: "Chọn hoặc dán JD",
+    description:
+      "Dùng việc làm có sẵn trong hệ thống hoặc tự dán mô tả công việc bạn muốn ứng tuyển.",
   },
   {
-    id: "testimonial-3",
-    quote:
-      "Tailored recommendations were practical and specific. It felt like having a focused career coach on demand.",
-    name: "Marcus Thorne",
-    role: "Marketing Director @ Figma",
-    avatar:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
+    id: "step-3",
+    icon: BarChart3,
+    title: "Nhận báo cáo phù hợp",
+    description:
+      "Xem mức độ phù hợp, kỹ năng còn thiếu, điểm cần viết lại và lộ trình học để cải thiện hồ sơ.",
   },
 ];
 
-const logos = ["TECHCORP", "NEXUS", "QUANTUM", "ORBIT", "APEX"];
-
-const sectionNavItems: SectionNavItem[] = [
-  { id: "how-it-works", label: "How It Works", href: "#how-it-works" },
-  { id: "features", label: "Features", href: "#features" },
-  { id: "pricing", label: "Pricing", href: "#pricing" },
+const pricingPlans: PricingItem[] = [
+  {
+    id: "free",
+    name: "Free",
+    price: "0đ",
+    period: "/tháng",
+    description:
+      "Phù hợp cho người mới bắt đầu muốn thử nghiệm tính năng cơ bản.",
+    cta: "Bắt đầu miễn phí",
+    features: [
+      "Phân tích CV cơ bản",
+      "So khớp với JD giới hạn",
+      "Xem nhóm kỹ năng khớp và thiếu",
+      "Gợi ý cải thiện tổng quan",
+    ],
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    badge: "Phù hợp nhất",
+    price: "Liên hệ",
+    description:
+      "Dành cho ứng viên đang ứng tuyển nghiêm túc và muốn tối ưu hồ sơ theo từng vị trí.",
+    cta: "Nâng cấp Pro",
+    highlighted: true,
+    features: [
+      "Nhiều lượt phân tích CV và JD",
+      "Báo cáo Skill Gap chi tiết",
+      "Gợi ý viết lại nội dung theo JD",
+      "Lộ trình học cá nhân hóa",
+      "Lưu lịch sử phân tích",
+    ],
+  },
+  {
+    id: "team",
+    name: "Team",
+    price: "Tùy chỉnh",
+    description:
+      "Dành cho lớp học, trung tâm đào tạo hoặc nhóm cần hỗ trợ nhiều ứng viên cùng lúc.",
+    cta: "Trao đổi nhu cầu",
+    features: [
+      "Quản lý nhiều tài khoản",
+      "Theo dõi tiến độ cải thiện hồ sơ",
+      "Báo cáo tổng quan cho quản trị viên",
+      "Hỗ trợ tích hợp theo nhu cầu",
+    ],
+  },
 ];
+
+function HeroReportPreview() {
+  const score = 67;
+  const clampedScore = clampScore(score);
+  const scoreColor = getScoreColor(clampedScore);
+  const matchedSkills = ["HTML", "CSS", "JavaScript", "REST API"];
+  const missingSkills = ["React", "Next.js", "Tailwind"];
+  const highlightSkills = ["Dự án frontend", "Vai trò cá nhân", "Kết quả UI"];
+
+  const scoreRingBg = `conic-gradient(${scoreColor} ${clampedScore}%, ${SCORE_RING_TRACK_COLOR} ${clampedScore}% 100%)`;
+
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="p-5 pb-4">
+        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
+          Báo cáo mức độ phù hợp
+        </p>
+        <h3 className="text-xl font-extrabold tracking-tight text-foreground">
+          Frontend Developer Intern
+        </h3>
+        <p className="mt-1 text-sm font-semibold text-muted-foreground">
+          SKYLAB TECHNOLOGY
+        </p>
+
+        {/* ScoreCircle */}
+        <div className="mt-4 flex items-center gap-4">
+          <div className="relative h-24 w-24 shrink-0">
+            <div
+              className="h-24 w-24 rounded-full"
+              style={{ background: scoreRingBg }}
+            />
+            <div className="absolute inset-[8px] flex flex-col items-center justify-center rounded-full bg-card">
+              <span className="text-2xl font-extrabold text-foreground">
+                {clampedScore}%
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                độ phù hợp
+              </span>
+            </div>
+          </div>
+          <div>
+            <span
+              className="inline-flex rounded-full border px-3 py-1 text-xs font-bold"
+              style={{
+                borderColor: `${scoreColor}40`,
+                backgroundColor: `${scoreColor}1a`,
+                color: scoreColor,
+              }}
+            >
+              {getScoreLabel(clampedScore)}
+            </span>
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              Có nền tảng cơ bản nhưng chưa thể hiện rõ kỹ năng frontend theo
+              yêu cầu JD, đặc biệt là kinh nghiệm React, cách xử lý UI và bằng
+              chứng dự án thực tế.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* SummaryMetrics — 3 card ngang */}
+      <div className="grid grid-cols-3 gap-3 px-5 pb-4">
+        {[
+          {
+            label: "Kỹ năng khớp",
+            value: matchedSkills.length,
+            toneCls: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+            icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Kỹ năng thiếu",
+            value: missingSkills.length,
+            toneCls: "border-rose-500/25 bg-rose-500/10 text-rose-700",
+            icon: <AlertTriangle className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Lộ trình",
+            value: "8 tuần",
+            toneCls: "border-blue-500/25 bg-blue-500/10 text-blue-700",
+            icon: <Rocket className="h-3.5 w-3.5" />,
+          },
+        ].map((m) => (
+          <div
+            key={m.label}
+            className="rounded-xl border border-border bg-card p-3 shadow-sm"
+          >
+            <div className="mb-2 flex items-center justify-between gap-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                {m.label}
+              </p>
+              <span className={`rounded-lg border p-1 ${m.toneCls}`}>
+                {m.icon}
+              </span>
+            </div>
+            <p className="text-lg font-extrabold text-foreground">{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tab bar */}
+      <div className="border-y border-border bg-background/90 px-4 py-2">
+        <div className="flex gap-1.5">
+          {["Tổng quan", "Kỹ năng", "Lộ trình"].map((tab, i) => (
+            <span
+              key={tab}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${i === 1 ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {tab}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Skills */}
+      <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-3">
+        <div>
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-foreground">
+            <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Đã thể hiện
+            tốt
+          </h4>
+          <div className="flex flex-wrap gap-1.5">
+            {matchedSkills.map((s) => (
+              <span
+                key={s}
+                className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-foreground">
+            <CircleAlert className="h-3.5 w-3.5 text-primary" /> Chưa thể hiện
+            rõ
+          </h4>
+          <div className="flex flex-wrap gap-1.5">
+            {missingSkills.map((s) => (
+              <span
+                key={s}
+                className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div>
+          <h4 className="mb-2 flex items-center gap-1.5 text-xs font-bold text-foreground">
+            <WandSparkles className="h-3.5 w-3.5 text-primary" /> Cần làm nổi
+            bật
+          </h4>
+          <div className="flex flex-wrap gap-1.5">
+            {highlightSkills.map((s) => (
+              <span
+                key={s}
+                className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recommendation */}
+      <div className="mx-5 mb-5 rounded-2xl bg-primary p-4 text-primary-foreground">
+        <p className="mb-1.5 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wide">
+          <Sparkles className="h-3 w-3" /> Khuyến nghị
+        </p>
+        <p className="text-sm font-bold leading-snug">
+          Ưu tiên bổ sung dự án React, mô tả rõ vai trò cá nhân và thêm số liệu
+          kết quả nếu có.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 export function HomeLandingWidget() {
   const navigate = useNavigate();
   const { isAuthenticated, isSessionLoading } = useSession();
   const [activeSection, setActiveSection] =
     useState<SectionNavItem["id"]>("how-it-works");
-  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     const updateActiveSectionFromHash = () => {
@@ -144,39 +391,33 @@ export function HomeLandingWidget() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isScanning) return;
-
-    const navTimer = window.setTimeout(() => {
-      navigate({ to: isAuthenticated ? "/match-report" : "/login" });
-    }, 1350);
-
-    return () => {
-      window.clearTimeout(navTimer);
-    };
-  }, [isAuthenticated, isScanning, navigate]);
-
   const handleAnalyzeCV = () => {
-    const scanSection = document.getElementById("how-it-works");
-    if (scanSection) {
-      scanSection.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
-
-    navigate({ to: "/" });
+    navigate({ to: isAuthenticated ? "/resume-optimizer" : "/login" });
   };
 
   return (
-    <div className="bg-background text-foreground [font-family:'Instrument_Sans',sans-serif]">
-      <nav className="sticky top-0 z-50 h-16 border-b border-border bg-card/90 backdrop-blur-md">
+    <div className="min-h-screen bg-background text-foreground">
+      <nav className="sticky top-0 z-50 h-16 border-b border-border/70 bg-background/85 backdrop-blur-xl">
         <div className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-8">
             <Link
               to="/"
-              className="text-lg font-bold text-primary tracking-tight truncate"
+              onClick={(event) => {
+                if (window.location.pathname === "/") {
+                  event.preventDefault();
+                  window.scrollTo({
+                    top: 0,
+                    behavior: "smooth",
+                  });
+                  window.history.replaceState(null, "", "/");
+                  setActiveSection("how-it-works");
+                }
+              }}
+              className="text-xl font-extrabold tracking-tight text-primary"
             >
               {BRAND.name}
             </Link>
+
             <div className="hidden items-center gap-6 md:flex">
               {sectionNavItems.map((item) => {
                 const isActive = activeSection === item.id;
@@ -197,7 +438,7 @@ export function HomeLandingWidget() {
                     {isActive ? (
                       <motion.div
                         layoutId="navbar-underline"
-                        className="absolute bottom-0 left-0 h-0.5 w-full bg-primary"
+                        className="absolute bottom-0 left-0 h-0.5 w-full rounded-full bg-primary"
                       />
                     ) : null}
                   </a>
@@ -212,30 +453,31 @@ export function HomeLandingWidget() {
                 type="button"
                 aria-disabled="true"
                 onClick={(event) => event.preventDefault()}
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
               >
-                Go to Dashboard
+                Đang tải...
               </button>
             ) : isAuthenticated ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <span>Go to Dashboard</span>
+                Vào dashboard
               </Link>
             ) : (
               <>
                 <Link
                   to="/login"
-                  className="hidden rounded-lg px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+                  className="hidden rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
                 >
-                  Log In
+                  Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
                 >
-                  <span>Try for Free</span>
+                  Bắt đầu miễn phí
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </>
             )}
@@ -243,464 +485,342 @@ export function HomeLandingWidget() {
         </div>
       </nav>
 
-      <section className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-16 px-4 py-20 sm:px-6 md:py-28 lg:grid-cols-2">
-        <div>
-          <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Know Exactly Why You&apos;re Getting Rejected
-          </h1>
-          <p className="mb-10 max-w-xl text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            {BRAND.name} uses advanced AI to analyze your resume against
-            specific job descriptions. Get a precise match score and instant
-            optimization steps to land more interviews.
-          </p>
+      <main>
+        <section className="relative overflow-hidden">
+          <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 px-4 pt-6 pb-10 sm:px-6 md:pt-8 md:pb-16 lg:grid-cols-[0.9fr_1.1fr]">
+            <div>
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+                <Sparkles className="h-4 w-4" />
+                Nền tảng tìm việc và phát triển sự nghiệp cho ứng viên IT
+              </div>
 
-          <div className="flex items-center gap-4">
+              <h1 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+                Biết CV của bạn phù hợp đến đâu
+                <span className="text-primary"> trước khi ứng tuyển.</span>
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+                {BRAND.name} giúp bạn so khớp CV với mô tả công việc, phát hiện
+                kỹ năng còn thiếu và gợi ý lộ trình cải thiện rõ ràng trước khi
+                ứng tuyển.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={handleAnalyzeCV}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
+                >
+                  Phân tích CV miễn phí
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <Link
+                  to="/jobs"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-card px-6 py-3.5 text-sm font-bold text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-muted"
+                >
+                  <Search className="h-4 w-4" />
+                  Xem việc làm phù hợp
+                </Link>
+              </div>
+
+              <div className="mt-7 flex flex-wrap gap-3">
+                {heroHighlights.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <HeroReportPreview />
+          </div>
+        </section>
+
+        <section
+          id="how-it-works"
+          className="border-y border-border/70 bg-muted/40 py-20"
+        >
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+            <div className="mb-12 max-w-2xl">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
+                Cách hoạt động
+              </p>
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+                3 bước để có báo cáo phân tích CV
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Từ tải CV, chọn công việc mục tiêu đến nhận báo cáo chi tiết —
+                bạn biết chính xác nên sửa gì trước khi ứng tuyển.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+
+                return (
+                  <article
+                    key={step.id}
+                    className="relative rounded-lg border border-border bg-card p-7 shadow-sm"
+                  >
+                    <div className="mb-6 flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+                        <Icon className="h-6 w-6 text-primary" />
+                      </div>
+                      <span className="text-5xl font-extrabold text-muted">
+                        0{index + 1}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold">{step.title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {step.description}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="py-20">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+            <div className="mb-12 max-w-2xl">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
+                Tính năng nổi bật
+              </p>
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Hiểu hồ sơ để ứng tuyển tốt hơn
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Mỗi tính năng đều hướng đến mục tiêu giúp ứng viên biết nên sửa
+                gì, vì sao cần sửa và sửa theo hướng nào để tăng cơ hội phỏng
+                vấn.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+
+                return (
+                  <article
+                    key={feature.id}
+                    className="group rounded-lg border border-border bg-card p-7 shadow-sm transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl"
+                  >
+                    <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary">
+                      <Icon className="h-6 w-6 text-primary transition-colors group-hover:text-primary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-bold">{feature.title}</h3>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {feature.description}
+                    </p>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-primary px-4 py-16 text-primary-foreground sm:px-6">
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+            <div>
+              <h2 className="max-w-2xl text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Phân tích CV không chỉ là biết điểm số, mà là biết nên sửa gì để
+                tăng cơ hội phỏng vấn
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-primary-foreground/80">
+                Bạn không chỉ cần biết CV được bao nhiêu điểm. Bạn cần biết nên
+                sửa phần nào, thiếu kỹ năng gì và phải làm gì để gần hơn với
+                công việc mong muốn.
+              </p>
+            </div>
+
             <button
               onClick={handleAnalyzeCV}
-              className="rounded-lg bg-primary px-7 py-3.5 text-left text-base font-semibold text-primary-foreground transition-all hover:bg-primary/90 sm:text-lg"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary-foreground px-6 py-3.5 text-sm font-bold text-primary shadow-lg transition-all hover:-translate-y-0.5 hover:bg-primary-foreground/90"
             >
-              Analyze My CV - It&apos;s Free
+              Thử phân tích ngay
+              <MousePointerClick className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-primary" />
-              <span>No credit card required</span>
-            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="relative">
-          <div className="overflow-hidden rounded-xl border border-border bg-card p-2 shadow-2xl">
-            <div className="rounded-lg border border-border/70 bg-background p-6">
-              <div className="mb-8 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-foreground">
-                      Senior Product Designer
-                    </h4>
-                    <p className="text-xs text-muted-foreground">
-                      Resume_V4_Final.pdf
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-3xl font-bold text-foreground">
-                    72%
-                  </span>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    Match Score
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="h-2 overflow-hidden rounded-full bg-border">
-                  <div className="h-full w-[72%] bg-primary" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-lg border border-border/40 bg-card p-4">
-                    <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">
-                      Keywords
-                    </p>
-                    <p className="text-sm font-semibold">12/15 Found</p>
-                  </div>
-                  <div className="rounded-lg border border-border/40 bg-card p-4">
-                    <p className="mb-1 text-[10px] font-bold uppercase text-muted-foreground">
-                      ATS Check
-                    </p>
-                    <p className="text-sm font-semibold text-foreground">
-                      Passed
-                    </p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-border bg-muted p-4">
-                  <p className="mb-1 text-xs font-semibold text-destructive">
-                    Missing Critical Skills:
-                  </p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    System Design, Figma Auto-layout, User Research Synthesis.
-                  </p>
-                </div>
-              </div>
+        <section id="pricing" className="bg-muted/40 py-20">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+            <div className="mb-12 max-w-2xl">
+              <p className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
+                Bảng giá
+              </p>
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+                Lựa chọn gói phù hợp
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                Dù muốn thử miễn phí, tối ưu theo từng vị trí hay hỗ trợ nhiều
+                ứng viên cùng lúc — chúng tôi đều có gói phù hợp.
+              </p>
             </div>
-          </div>
 
-          <div className="absolute -right-12 -top-12 -z-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
-        </div>
-      </section>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {pricingPlans.map((plan) => (
+                <article
+                  key={plan.id}
+                  className={[
+                    "relative flex flex-col rounded-lg border p-8 shadow-sm",
+                    plan.highlighted
+                      ? "border-primary bg-card shadow-2xl shadow-primary/10"
+                      : "border-border bg-card",
+                  ].join(" ")}
+                >
+                  {plan.badge ? (
+                    <span className="absolute -top-4 left-8 rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground">
+                      {plan.badge}
+                    </span>
+                  ) : null}
 
-      <section className="border-y border-border/40 bg-muted/60 py-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-8 px-4 sm:px-6 md:flex-row">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-0.5 text-muted-foreground">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star key={star} className="h-4 w-4 fill-current" />
+                  <h3 className="text-xl font-extrabold">{plan.name}</h3>
+                  <p className="mt-3 min-h-14 text-sm leading-6 text-muted-foreground">
+                    {plan.description}
+                  </p>
+
+                  <div className="mt-7">
+                    <span className="text-4xl font-extrabold">
+                      {plan.price}
+                    </span>
+                    {plan.period ? (
+                      <span className="ml-1 text-sm text-muted-foreground">
+                        {plan.period}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <ul className="mt-8 flex-1 space-y-4 text-sm">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex gap-3">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={handleAnalyzeCV}
+                    className={[
+                      "mt-8 rounded-xl px-5 py-3 text-sm font-bold transition-all",
+                      plan.highlighted
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "border border-border bg-background hover:border-primary/40 hover:bg-muted",
+                    ].join(" ")}
+                  >
+                    {plan.cta}
+                  </button>
+                </article>
               ))}
             </div>
-            <p className="text-sm font-medium text-muted-foreground">
-              Trusted by 50,000+ job seekers
-            </p>
           </div>
+        </section>
 
-          <div className="flex flex-wrap justify-center gap-8 text-lg font-bold tracking-tight text-muted-foreground sm:gap-12">
-            {logos.map((logo) => (
-              <span key={logo}>{logo}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <ScanWidget
-        onScanComplete={() => {
-          if (isScanning) return;
-          setIsScanning(true);
-        }}
-        onViewSampleReport={() => navigate({ to: "/sample-report" })}
-      />
-
-      <section id="features" className="bg-muted py-20">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-          <div className="mb-12">
-            <h2 className="mb-4 text-center text-3xl font-bold tracking-tight">
-              Built for Performance
+        <section className="px-4 py-24 text-center sm:px-6">
+          <div className="mx-auto max-w-3xl">
+            <FileText className="mx-auto mb-6 h-12 w-12 text-primary" />
+            <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl">
+              Biến mỗi lần phân tích CV thành một bước tiến trong hành trình tìm
+              việc.
             </h2>
-            <p className="text-muted-foreground text-center">
-              The most powerful toolset for modern job applications.
+            <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-muted-foreground">
+              Tải CV lên, chọn công việc mục tiêu và xem ngay những điểm cần cải
+              thiện để ứng tuyển tự tin hơn.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <article
-                  key={feature.id}
-                  className="rounded-xl border border-border bg-card p-8 transition-colors hover:border-primary/50"
-                >
-                  <Icon className="mb-6 h-8 w-8 text-primary" />
-                  <h4 className="mb-3 text-lg font-bold">{feature.title}</h4>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6">
-        <h2 className="mb-14 text-center text-3xl font-bold tracking-tight">
-          Success Stories
-        </h2>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {testimonials.map((testimonial) => (
-            <article
-              key={testimonial.id}
-              className="relative rounded-xl border border-border bg-card p-8"
+            <button
+              onClick={handleAnalyzeCV}
+              className="mt-9 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
             >
-              <span className="absolute right-8 top-4 text-6xl font-serif leading-none text-muted-foreground/60">
-                &quot;
-              </span>
-              <p className="relative z-10 mb-8 text-sm italic leading-relaxed text-muted-foreground">
-                {testimonial.quote}
-              </p>
-              <div className="flex items-center gap-4">
-                <img
-                  src={testimonial.avatar}
-                  alt={testimonial.name}
-                  className="h-12 w-12 rounded-full object-cover grayscale"
-                />
-                <div>
-                  <p className="text-sm font-bold">{testimonial.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {testimonial.role}
-                  </p>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              Phân tích CV miễn phí
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </section>
+      </main>
 
-      <section id="pricing" className="bg-muted py-20">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
-          <div className="mb-14 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
-              Simple, Professional Pricing
-            </h2>
-            <p className="text-muted-foreground">
-              Invest in your career. Get more offers.
+      <footer className="border-t border-border bg-foreground px-4 py-14 text-background sm:px-6">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <span className="block text-xl font-extrabold">{BRAND.name}</span>
+            <p className="mt-4 max-w-sm text-sm leading-7 text-background/70">
+              Nền tảng AI giúp ứng viên IT hiểu hồ sơ của mình, so khớp với công
+              việc mục tiêu và xây dựng lộ trình cải thiện kỹ năng.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <article className="flex flex-col rounded-xl border border-border bg-card p-8 text-foreground">
-              <h3 className="mb-2 text-lg font-bold">Free</h3>
-              <p className="mb-6 text-sm text-muted-foreground">
-                For the occasional seeker.
-              </p>
-              <p className="mb-8 text-3xl font-bold">
-                $0
-                <span className="text-sm font-normal text-muted-foreground">
-                  {" "}
-                  /mo
-                </span>
-              </p>
-              <ul className="mb-10 flex-grow space-y-4 text-sm">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> 5 Resume
-                  Scans / Mo
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Basic
-                  Keyword Analysis
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> ATS Checker
-                </li>
-                <li className="flex items-center gap-3 text-muted-foreground/60 line-through">
-                  <CircleAlert className="h-4 w-4" /> AI Bullet Rewriting
-                </li>
-              </ul>
-              <button className="rounded-lg border border-border py-3 text-sm font-bold transition-colors hover:bg-muted">
-                Get Started
-              </button>
-            </article>
+          <div>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-background/50">
+              Sản phẩm
+            </h4>
+            <ul className="space-y-3 text-sm text-background/70">
+              <li>
+                <a href="#features" className="hover:text-background">
+                  Tính năng
+                </a>
+              </li>
+              <li>
+                <a href="#how-it-works" className="hover:text-background">
+                  Cách hoạt động
+                </a>
+              </li>
+              <li>
+                <a href="#pricing" className="hover:text-background">
+                  Bảng giá
+                </a>
+              </li>
+            </ul>
+          </div>
 
-            <article className="relative flex scale-[1.01] flex-col rounded-xl border-2 border-primary/50 bg-card p-8 shadow-2xl text-foreground">
-              <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                Most Popular
-              </span>
-              <h3 className="mb-2 text-lg font-bold">Pro</h3>
-              <p className="mb-6 text-sm text-muted-foreground">
-                For the serious candidate.
-              </p>
-              <p className="mb-8 text-3xl font-bold">
-                $19
-                <span className="text-sm font-normal text-muted-foreground">
-                  {" "}
-                  /mo
-                </span>
-              </p>
-              <ul className="mb-10 flex-grow space-y-4 text-sm">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Unlimited
-                  Scans
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> AI
-                  Optimization Suite
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Cover Letter
-                  Generator
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Interview
-                  Prep Insights
-                </li>
-              </ul>
-              <button className="rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90">
-                Go Pro
-              </button>
-            </article>
-
-            <article className="flex flex-col rounded-xl border border-border bg-card p-8 text-foreground">
-              <h3 className="mb-2 text-lg font-bold">Teams</h3>
-              <p className="mb-6 text-sm text-muted-foreground">
-                For agencies and bootcamps.
-              </p>
-              <p className="mb-8 text-3xl font-bold">Custom</p>
-              <ul className="mb-10 flex-grow space-y-4 text-sm">
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> 50+ Seats
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Admin
+          <div>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-background/50">
+              Tài khoản
+            </h4>
+            <ul className="space-y-3 text-sm text-background/70">
+              <li>
+                <Link to="/login" className="hover:text-background">
+                  Đăng nhập
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="hover:text-background">
+                  Đăng ký
+                </Link>
+              </li>
+              <li>
+                <Link to="/dashboard" className="hover:text-background">
                   Dashboard
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> Bulk CV
-                  Processing
-                </li>
-                <li className="flex items-center gap-3">
-                  <CheckCircle2 className="h-4 w-4 text-primary" /> API Access
-                </li>
-              </ul>
-              <button className="rounded-lg border border-border py-3 text-sm font-bold transition-colors hover:bg-muted">
-                Contact Sales
-              </button>
-            </article>
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-widest text-background/50">
+              Pháp lý
+            </h4>
+            <ul className="space-y-3 text-sm text-background/70">
+              <li>
+                <a href="#" className="hover:text-background">
+                  Chính sách bảo mật
+                </a>
+              </li>
+              <li>
+                <a href="#" className="hover:text-background">
+                  Điều khoản sử dụng
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
-      </section>
 
-      <section className="bg-background px-4 py-24 text-center sm:px-6 md:py-28">
-        <h2 className="mb-8 text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-          Stop guessing. Start getting interviews.
-        </h2>
-        <p className="mx-auto mb-12 max-w-xl text-lg text-muted-foreground">
-          Join 50,000+ professionals who have optimized their career paths with
-          {BRAND.name}.
-        </p>
-        <button
-          onClick={handleAnalyzeCV}
-          className="rounded-lg bg-primary px-10 py-4 text-xl font-bold text-primary-foreground shadow-lg transition-all hover:bg-primary/90 hover:shadow-xl"
-        >
-          Analyze My Resume Now
-        </button>
-      </section>
-
-      <footer className="border-t border-foreground bg-foreground px-4 py-16 text-background sm:px-6">
-        <div className="mx-auto w-full max-w-7xl">
-          <div className="mb-14 grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5">
-            <div className="lg:col-span-2">
-              <span className="mb-4 block text-xl font-bold text-background">
-                {BRAND.name}
-              </span>
-              <p className="max-w-xs text-sm leading-relaxed text-background/70">
-                AI-powered resume and job application platform. Precision
-                engineered to help you land your dream role.
-              </p>
-            </div>
-
-            <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
-                Product
-              </h5>
-              <ul className="space-y-4 text-sm text-background/70">
-                <li>
-                  <a
-                    href="#features"
-                    className="transition-colors hover:text-background"
-                  >
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#how-it-works"
-                    className="transition-colors hover:text-background"
-                  >
-                    How It Works
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#pricing"
-                    className="transition-colors hover:text-background"
-                  >
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    API
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
-                Company
-              </h5>
-              <ul className="space-y-4 text-sm text-background/70">
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    Careers
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h5 className="mb-6 text-xs font-bold uppercase tracking-widest text-background/60">
-                Social
-              </h5>
-              <ul className="space-y-4 text-sm text-background/70">
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    Twitter
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    LinkedIn
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="transition-colors hover:text-background"
-                  >
-                    GitHub
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-between gap-4 border-t border-background/15 pt-8 md:flex-row">
-            <span className="text-xs text-background/60">
-              © 2026 {BRAND.name}. All rights reserved.
-            </span>
-            <div className="flex gap-6">
-              <a
-                className="text-xs text-background/60 transition-colors hover:text-background"
-                href="#"
-              >
-                Privacy Policy
-              </a>
-              <a
-                className="text-xs text-background/60 transition-colors hover:text-background"
-                href="#"
-              >
-                Terms of Service
-              </a>
-            </div>
-          </div>
+        <div className="mx-auto mt-10 flex w-full max-w-7xl flex-col justify-between gap-4 border-t border-background/15 pt-6 text-xs text-background/50 sm:flex-row">
+          <span>© 2026 {BRAND.name}. Mọi quyền được bảo lưu.</span>
         </div>
       </footer>
     </div>

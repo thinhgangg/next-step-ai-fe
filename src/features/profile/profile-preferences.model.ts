@@ -72,9 +72,7 @@ export function getDefaultProfilePreferences(
     email: user?.email?.trim() || "",
     phone: user?.phone?.trim() || "",
     location:
-      user?.location?.trim() ||
-      careerGoals.preferredLocation?.trim() ||
-      "",
+      user?.location?.trim() || careerGoals.preferredLocation?.trim() || "",
     currentRole:
       user?.currentRole?.trim() || careerGoals.targetRole?.trim() || "",
     experienceYears: user?.experienceYears ?? null,
@@ -89,8 +87,7 @@ export function getDefaultProfilePreferences(
     experiences: user?.experiences ?? [],
     careerGoals: {
       targetRole: careerGoals.targetRole || user?.currentRole || "",
-      preferredLocation:
-        careerGoals.preferredLocation || user?.location || "",
+      preferredLocation: careerGoals.preferredLocation || user?.location || "",
       workStyle: careerGoals.workStyle || DEFAULT_WORK_STYLE,
       goal: careerGoals.goal || "",
     },
@@ -105,7 +102,7 @@ export function formatSalaryRange(profile: ProfilePreferences) {
   if (profile.targetSalaryMin) return `From ${profile.targetSalaryMin}M VND`;
   if (profile.targetSalaryMax) return `Up to ${profile.targetSalaryMax}M VND`;
 
-  return "Not provided";
+  return "Chưa cập nhật";
 }
 
 export function useProfilePreferences(user?: SessionUser | null) {

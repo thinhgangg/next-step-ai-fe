@@ -1,4 +1,4 @@
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import {
   BriefcaseBusiness,
   ExternalLink,
@@ -8,7 +8,6 @@ import {
   MapPin,
   Pencil,
   Phone,
-  Sparkles,
   Target,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -56,11 +55,11 @@ function InfoRow({
   value?: string | number | null;
 }) {
   return (
-    <div className="grid grid-cols-[24px_150px_1fr] items-center gap-3 border-b border-border py-3 last:border-b-0">
+    <div className="grid grid-cols-[24px_180px_1fr] items-center gap-3 border-b border-border py-3 last:border-b-0">
       <Icon className="h-4 w-4 text-muted-foreground" />
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-        {value || "Not provided"}
+        {value || "Chưa cập nhật"}
       </span>
     </div>
   );
@@ -76,7 +75,7 @@ function LinkRow({
   url?: string | null;
 }) {
   if (!url) {
-    return <InfoRow icon={Icon} label={label} value="Not provided" />;
+    return <InfoRow icon={Icon} label={label} value="Chưa cập nhật" />;
   }
 
   return (
@@ -84,7 +83,7 @@ function LinkRow({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="grid grid-cols-[24px_150px_1fr_auto] items-center gap-3 border-b border-border py-3 text-sm last:border-b-0 hover:text-primary"
+      className="grid grid-cols-[24px_180px_1fr_auto] items-center gap-3 border-b border-border py-3 text-sm last:border-b-0 hover:text-primary"
     >
       <Icon className="h-4 w-4 text-muted-foreground" />
       <span className="text-muted-foreground">{label}</span>
@@ -114,8 +113,8 @@ function formatYearMonth(value?: string | null) {
 
   const date = new Date(parsed.year, parsed.month - 1);
 
-  return date.toLocaleString("en-US", {
-    month: "short",
+  return date.toLocaleString("vi-VN", {
+    month: "numeric",
     year: "numeric",
   });
 }
@@ -140,19 +139,17 @@ function getMonthDuration(
   if (months <= 0) return null;
 
   if (months < 12) {
-    return `${months} month${months > 1 ? "s" : ""}`;
+    return `${months} tháng`;
   }
 
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
 
   if (remainingMonths === 0) {
-    return `${years} year${years > 1 ? "s" : ""}`;
+    return `${years} năm`;
   }
 
-  return `${years} year${years > 1 ? "s" : ""} ${remainingMonths} month${
-    remainingMonths > 1 ? "s" : ""
-  }`;
+  return `${years} năm ${remainingMonths} tháng`;
 }
 
 function formatExperienceDate(
@@ -160,15 +157,17 @@ function formatExperienceDate(
   endDate?: string | null,
   isCurrent?: boolean | null,
 ) {
-  if (!startDate && !endDate && !isCurrent) return "Date not provided";
+  if (!startDate && !endDate && !isCurrent) return "Chưa cập nhật thời gian";
 
-  const start = startDate ? formatYearMonth(startDate) : "Start";
+  const start = startDate
+    ? formatYearMonth(startDate)
+    : "Bắt đầu không xác định";
 
   if (!endDate && !isCurrent) {
     return start;
   }
 
-  const end = isCurrent ? "Present" : formatYearMonth(endDate);
+  const end = isCurrent ? "Hiện tại" : formatYearMonth(endDate);
   const duration = getMonthDuration(startDate, endDate, isCurrent);
 
   return duration ? `${start} - ${end} - ${duration}` : `${start} - ${end}`;
@@ -190,71 +189,72 @@ export function ProfilePage() {
   const { user } = useSession();
   const { profile } = useProfilePreferences(user);
   const { avatarSrc } = useAvatarFile(user?.avatar);
+  const [hasAvatarLoadError, setHasAvatarLoadError] = useState(false);
   const navigate = useNavigate();
-  const displayName = profile.fullName || "Unnamed user";
+  const displayName = profile.fullName || "Người dùng chưa cập nhật tên";
   const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
+  const visibleAvatarSrc = hasAvatarLoadError ? null : avatarSrc;
+
+  useEffect(() => {
+    setHasAvatarLoadError(false);
+  }, [avatarSrc]);
   const headline =
     profile.currentRole ||
     profile.careerGoals.targetRole ||
-    "Headline not provided";
+    "Chưa cập nhật vị trí công việc";
   const sortedExperiences = [...profile.experiences].sort(
     (a, b) => getExperienceSortValue(b) - getExperienceSortValue(a),
   );
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Hồ sơ cá nhân"
+      headerDescription="Cập nhật thông tin cá nhân, kỹ năng và định hướng nghề nghiệp để hệ thống gợi ý phù hợp hơn."
+    >
       <div className="mx-auto max-w-[1480px] space-y-5">
-        <section className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Candidate profile
-            </p>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              Profile
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Information saved on your account and used for matching,
-              recommendations, and profile review.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate({ to: "/settings" })}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-          >
-            <Pencil className="h-4 w-4" />
-            Edit profile
-          </button>
-        </section>
-
         {/* Avatar Card — full width */}
         <PageCard className="p-5">
-          <div className="grid gap-5 md:grid-cols-[120px_1fr] md:items-center">
-            <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-4xl font-black text-primary md:mx-0">
-              {avatarSrc ? (
+          <div className="grid gap-5 md:grid-cols-[120px_1fr_auto] md:items-center">
+            <div className="mx-auto flex h-28 w-28 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-4xl font-extrabold text-primary md:mx-0">
+              {visibleAvatarSrc ? (
                 <img
-                  src={avatarSrc}
+                  src={visibleAvatarSrc}
                   alt={displayName}
+                  onError={() => setHasAvatarLoadError(true)}
                   className="h-full w-full object-cover"
                 />
               ) : (
                 avatarFallback
               )}
             </div>
+
             <div className="min-w-0 text-center md:text-left">
-              <h2 className="text-2xl font-black text-foreground">
+              <h2 className="truncate text-2xl font-extrabold text-foreground">
                 {displayName}
               </h2>
+
               <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground md:justify-start">
                 <span className="inline-flex items-center gap-2">
                   <BriefcaseBusiness className="h-4 w-4" />
                   {headline}
                 </span>
+
                 <span className="inline-flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  {profile.location || "Location not provided"}
+                  {profile.location || "Chưa cập nhật địa điểm"}
                 </span>
               </div>
+            </div>
+
+            <div className="flex justify-center md:justify-end">
+              <button
+                onClick={() => navigate({ to: "/settings" })}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                <Pencil className="h-4 w-4" />
+                Chỉnh sửa hồ sơ
+              </button>
             </div>
           </div>
         </PageCard>
@@ -266,33 +266,37 @@ export function ProfilePage() {
             {/* Profile Overview */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Profile Overview
+                Tổng quan hồ sơ
               </h2>
               <div className="mb-3 border-b border-border pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Personal
+                Thông tin cá nhân
               </div>
               <InfoRow icon={Mail} label="Email" value={profile.email} />
-              <InfoRow icon={Phone} label="Phone" value={profile.phone} />
+              <InfoRow
+                icon={Phone}
+                label="Số điện thoại"
+                value={profile.phone}
+              />
               <InfoRow
                 icon={MapPin}
-                label="Location"
+                label="Địa điểm"
                 value={profile.location}
               />
 
               <div className="mb-3 mt-5 border-b border-border pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Career Snapshot
+                Tóm tắt nghề nghiệp
               </div>
               <InfoRow
                 icon={BriefcaseBusiness}
-                label="Current role"
+                label="Vị trí hiện tại"
                 value={profile.currentRole}
               />
               <InfoRow
                 icon={Target}
-                label="Experience"
+                label="Kinh nghiệm"
                 value={
                   profile.experienceYears !== null
-                    ? `${profile.experienceYears} years`
+                    ? `${profile.experienceYears} năm`
                     : null
                 }
               />
@@ -301,7 +305,7 @@ export function ProfilePage() {
             {/* Experience */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Experience
+                Kinh nghiệm
               </h2>
               {sortedExperiences.length ? (
                 <div>
@@ -327,11 +331,12 @@ export function ProfilePage() {
                           <div className="grid grid-cols-[1fr_auto] items-start gap-2">
                             <div>
                               <h3 className="text-sm font-bold text-foreground">
-                                {experience.title || "Untitled experience"}
+                                {experience.title ||
+                                  "Kinh nghiệm không có tiêu đề"}
                               </h3>
                               <p className="mt-0.5 text-sm text-muted-foreground">
                                 {experience.organization ||
-                                  "Organization not provided"}
+                                  "Chưa cập nhật tổ chức"}
                               </p>
                             </div>
                             <div className="text-right">
@@ -376,7 +381,7 @@ export function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <EmptyState label="No experience saved yet." />
+                <EmptyState label="Chưa có kinh nghiệm nào được lưu." />
               )}
             </PageCard>
           </div>
@@ -386,7 +391,7 @@ export function ProfilePage() {
             {/* Skills */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Skills
+                Kỹ năng
               </h2>
               {profile.skills.length ? (
                 <div className="flex flex-wrap gap-2">
@@ -400,14 +405,14 @@ export function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <EmptyState label="No skills saved yet." />
+                <EmptyState label="Chưa có kỹ năng nào được lưu." />
               )}
             </PageCard>
 
             {/* Online Profiles */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Online Profiles
+                Liên kết cá nhân
               </h2>
               <LinkRow
                 icon={Linkedin}
@@ -425,31 +430,31 @@ export function ProfilePage() {
             {/* Career Goals */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Career Goals
+                Mục tiêu nghề nghiệp
               </h2>
               <InfoRow
                 icon={Target}
-                label="Target role"
+                label="Vị trí mục tiêu"
                 value={profile.careerGoals.targetRole}
               />
               <InfoRow
                 icon={MapPin}
-                label="Preferred location"
+                label="Địa điểm mong muốn"
                 value={profile.careerGoals.preferredLocation}
               />
               <InfoRow
                 icon={BriefcaseBusiness}
-                label="Work style"
+                label="Hình thức làm việc"
                 value={formatWorkStyle(profile.careerGoals.workStyle)}
               />
               <InfoRow
                 icon={Target}
-                label="Expected salary"
+                label="Mức lương mong muốn"
                 value={formatSalaryRange(profile)}
               />
               <InfoRow
                 icon={Target}
-                label="Goal"
+                label="Mục tiêu"
                 value={profile.careerGoals.goal}
               />
             </PageCard>
@@ -457,7 +462,7 @@ export function ProfilePage() {
             {/* Suggested Improvements */}
             <PageCard className="p-5">
               <h2 className="mb-4 text-base font-bold text-foreground">
-                Suggested improvements
+                Đề xuất cải thiện
               </h2>
               {profile.suggestedImprovements.length ? (
                 <div className="space-y-3">
@@ -476,7 +481,7 @@ export function ProfilePage() {
                   ))}
                 </div>
               ) : (
-                <EmptyState label="No improvement suggestions saved yet." />
+                <EmptyState label="Chưa có đề xuất cải thiện nào được lưu." />
               )}
             </PageCard>
           </div>

@@ -10,11 +10,8 @@ import {
   FileText,
   History,
   Loader2,
-  Search,
-  Sparkles,
   Target,
   TrendingUp,
-  UploadCloud,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AppShell } from "@/shared/ui/app-shell";
@@ -28,35 +25,16 @@ import {
 import { useJobsCatalog, type JobItem } from "@/features/jobs/model/jobs.model";
 import { useSession } from "@/features/auth/session/session.model";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
+import {
+  SCORE_RING_TRACK_COLOR,
+  clampScore,
+  getScoreColor,
+  getScoreLabel,
+} from "@/shared/lib/score";
+import { formatRelativeDate } from "@/shared/lib/date";
 
 type Tone = "primary" | "emerald" | "amber" | "orange" | "blue";
 
-function clampScore(value?: number | null) {
-  return Math.max(0, Math.min(100, Math.round(value ?? 0)));
-}
-
-function formatRelativeDate(value?: string | null) {
-  if (!value) return "No date";
-
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "No date";
-
-  const diffDays = Math.max(
-    0,
-    Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)),
-  );
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return `${diffDays} days ago`;
-}
-
-function scoreLabel(score: number) {
-  if (score >= 85) return "Excellent fit";
-  if (score >= 70) return "Strong fit";
-  if (score >= 50) return "Good start";
-  return "Needs work";
-}
 
 function toneClass(tone: Tone) {
   const map: Record<Tone, string> = {
@@ -70,12 +48,6 @@ function toneClass(tone: Tone) {
   return map[tone];
 }
 
-function scoreColor(score: number) {
-  if (score >= 85) return "#4f46e5";
-  if (score >= 70) return "#2563eb";
-  if (score >= 50) return "#f59e0b";
-  return "#f97316";
-}
 
 function DashboardCard({
   children,
@@ -145,7 +117,7 @@ function MetricCard({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+          <p className="mt-2 text-xl font-bold tracking-tight text-foreground">
             {value}
           </p>
         </div>
@@ -178,20 +150,20 @@ function ScoreRing({
     <div
       className={`relative shrink-0 rounded-full ${ringSize}`}
       style={{
-        background: `conic-gradient(${scoreColor(
+        background: `conic-gradient(${getScoreColor(
           clamped,
-        )} ${clamped}%, #e9e7ff ${clamped}% 100%)`,
+        )} ${clamped}%, ${SCORE_RING_TRACK_COLOR} ${clamped}% 100%)`,
       }}
     >
       <div
         className={`absolute ${innerInset} flex flex-col items-center justify-center rounded-full bg-card`}
       >
-        <span className={`${textSize} font-black text-foreground`}>
+        <span className={`${textSize} font-extrabold text-foreground`}>
           {clamped}%
         </span>
         {size === "large" ? (
           <span className="text-xs font-semibold text-muted-foreground">
-            match score
+            độ phù hợp
           </span>
         ) : null}
       </div>
@@ -209,13 +181,14 @@ function RecentAnalysisCard({
   onOpen: (analysisId: number) => void;
 }) {
   const score = clampScore(latestAnalysis?.jobMatchScore);
+  const scoreColor = getScoreColor(score);
   const breakdown = analysis?.jobMatch.scoreBreakdown;
   const matchedSkills = analysis?.jobMatch.matchedSkills.length ?? 0;
   const missingSkills = analysis?.jobMatch.missingSkills.length ?? 0;
 
   return (
     <DashboardCard className="p-5">
-      <SectionTitle title="Latest Match Report" />
+      <SectionTitle title="Báo cáo gần nhất" />
 
       {latestAnalysis ? (
         <div className="grid gap-5 xl:grid-cols-[auto_minmax(0,1fr)_280px] xl:items-center">
@@ -225,24 +198,34 @@ function RecentAnalysisCard({
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                {scoreLabel(score)}
+              <div
+                className="inline-flex rounded-full border px-3 py-1 text-xs font-bold"
+                style={{
+                  borderColor: `${scoreColor}40`,
+                  backgroundColor: `${scoreColor}1a`,
+                  color: scoreColor,
+                }}
+              >
+                {getScoreLabel(score)}
               </div>
               <span className="text-xs font-medium text-muted-foreground">
-                {formatRelativeDate(latestAnalysis.createdAt)}
+                {formatRelativeDate(latestAnalysis.createdAt, {
+                  fallback: "Không rõ ngày",
+                  yesterdayLabel: "Hôm qua",
+                })}
               </span>
             </div>
-            <h3 className="mt-3 line-clamp-2 text-2xl font-black text-foreground">
-              {latestAnalysis.jobTitle || "Untitled role"}
+            <h3 className="mt-3 line-clamp-2 text-2xl font-extrabold text-foreground">
+              {latestAnalysis.jobTitle || "Không rõ vị trí"}
             </h3>
             <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-              Resume: {latestAnalysis.cvFilename ?? "Uploaded CV"}
+              CV: {latestAnalysis.cvFilename ?? "CV đã tải lên"}
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Skill match
+                  Mức độ phù hợp
                 </p>
                 <p className="mt-1 text-sm font-bold text-foreground">
                   {breakdown ? `${clampScore(breakdown.skillMatch)}%` : "--"}
@@ -250,7 +233,7 @@ function RecentAnalysisCard({
               </div>
               <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Matched skills
+                  Kỹ năng phù hợp
                 </p>
                 <p className="mt-1 text-sm font-bold text-foreground">
                   {matchedSkills || "--"}
@@ -258,7 +241,7 @@ function RecentAnalysisCard({
               </div>
               <div className="rounded-lg border border-border bg-background/50 px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Missing skills
+                  Kỹ năng còn thiếu
                 </p>
                 <p className="mt-1 text-sm font-bold text-foreground">
                   {missingSkills || "--"}
@@ -269,18 +252,18 @@ function RecentAnalysisCard({
 
           <div className="rounded-xl border border-border bg-background/50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Next step
+              Chi tiết báo cáo
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Open the full report to review AI feedback, missing keywords, and
-              the job-specific roadmap.
+              Mở báo cáo đầy đủ để xem phản hồi từ AI, các từ khóa còn thiếu và
+              lộ trình cải thiện theo vị trí mục tiêu.
             </p>
             <button
               type="button"
               onClick={() => onOpen(latestAnalysis.analysisId)}
               className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
-              View detailed report
+              Xem báo cáo chi tiết
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -289,10 +272,11 @@ function RecentAnalysisCard({
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center">
           <FileSearch className="mx-auto h-9 w-9 text-muted-foreground" />
           <h3 className="mt-3 text-base font-bold text-foreground">
-            No report yet
+            Chưa có báo cáo nào được tạo
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Run your first scan to unlock CV insights and job matching.
+            Hãy phân tích CV đầu tiên để xem điểm mạnh, điểm thiếu và mức độ phù
+            hợp với công việc.
           </p>
         </div>
       )}
@@ -322,20 +306,19 @@ function HighlightedSkillsCard({
 
   return (
     <DashboardCard className="p-5">
-      <SectionTitle
-        title="Highlighted Skills"
-        action={
-          analysis ? (
-            <span className="text-xs font-medium text-muted-foreground">
-              From your latest scan
-            </span>
-          ) : null
-        }
-      />
+      <div className="mb-4">
+        <h2 className="text-base font-bold text-foreground">Kỹ năng nổi bật</h2>
+
+        {analysis ? (
+          <p className="mt-1 line-clamp-1 text-xs font-medium text-muted-foreground">
+            Dựa trên {analysis.jobContext.title}
+          </p>
+        ) : null}
+      </div>
       {loading ? (
         <div className="flex min-h-[180px] items-center justify-center gap-3 text-sm text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          Loading skills...
+          Đang trích xuất kỹ năng...
         </div>
       ) : skills.length ? (
         <div className="space-y-4">
@@ -358,7 +341,7 @@ function HighlightedSkillsCard({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-          Run a scan to highlight skills found in your resume.
+          Hãy phân tích CV để xem các kỹ năng nổi bật trong hồ sơ của bạn.
         </div>
       )}
     </DashboardCard>
@@ -376,7 +359,7 @@ function JobRecommendationCard({
 
   return (
     <div className="flex items-center gap-4 border-b border-border py-4 last:border-b-0">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-black text-primary">
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-extrabold text-primary">
         {job.company.name.slice(0, 2).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
@@ -406,7 +389,7 @@ function JobRecommendationCard({
           onClick={onScan}
           className="hidden h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex"
         >
-          Scan
+          Phân tích
         </button>
         <a
           href={job.sourceUrl}
@@ -414,7 +397,7 @@ function JobRecommendationCard({
           rel="noreferrer"
           className="hidden h-9 items-center rounded-lg border border-border px-3 text-sm font-semibold text-primary hover:bg-muted sm:inline-flex"
         >
-          Apply
+          Ứng tuyển
         </a>
       </div>
     </div>
@@ -433,11 +416,11 @@ function RoadmapPreview({
   return (
     <DashboardCard className="p-5">
       <SectionTitle
-        title="Skill Roadmap"
+        title="Lộ trình cải thiện kỹ năng"
         action={
           analysis ? (
             <span className="line-clamp-1 max-w-[260px] text-right text-xs font-medium text-muted-foreground">
-              Based on {analysis.jobContext.title}
+              Dựa trên {analysis.jobContext.title}
             </span>
           ) : null
         }
@@ -446,28 +429,28 @@ function RoadmapPreview({
       {loading ? (
         <div className="flex min-h-[220px] items-center justify-center gap-3 text-sm text-muted-foreground">
           <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          Loading roadmap...
+          Đang tải lộ trình...
         </div>
       ) : phases.length ? (
         <div className="relative space-y-5 pl-8">
           <div className="absolute bottom-4 left-[15px] top-4 w-px bg-border" />
           {phases.map((phase) => (
             <div key={phase.phase} className="relative">
-              <div className="absolute -left-8 top-5 flex h-8 w-8 items-center justify-center rounded-full border border-primary/25 bg-card text-xs font-black text-primary shadow-sm">
+              <div className="absolute -left-8 top-5 flex h-8 w-8 items-center justify-center rounded-full border border-primary/25 bg-card text-xs font-extrabold text-primary shadow-sm">
                 {phase.phase}
               </div>
               <div className="rounded-xl border border-border bg-background/50 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                      Phase {phase.phase}
+                      Giai đoạn {phase.phase}
                     </p>
                     <h3 className="mt-1 font-bold text-foreground">
                       {phase.title}
                     </h3>
                   </div>
                   <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                    {phase.durationWeeks} weeks
+                    {phase.durationWeeks} tuần
                   </span>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -486,7 +469,7 @@ function RoadmapPreview({
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-          Run a scan to create a skill roadmap for your target role.
+          Hãy phân tích CV để tạo lộ trình kỹ năng cho vị trí mục tiêu.
         </div>
       )}
     </DashboardCard>
@@ -507,11 +490,13 @@ function CareerGoalSummary({
           <TrendingUp className="h-6 w-6" />
         </span>
         <div>
-          <h2 className="text-lg font-bold text-foreground">Career Goal</h2>
+          <h2 className="text-lg font-bold text-foreground">
+            Mục tiêu nghề nghiệp
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {analysis
-              ? `Current target: ${analysis.jobContext.title}`
-              : "Run a scan to connect your resume with a target role."}
+              ? `Vị trí mục tiêu: ${analysis.jobContext.title}`
+              : "Hãy phân tích CV để kết nối hồ sơ của bạn với một vị trí mục tiêu."}
           </p>
         </div>
       </div>
@@ -519,18 +504,18 @@ function CareerGoalSummary({
       <div className="grid gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 md:min-w-[360px] md:grid-cols-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Latest match
+            Độ phù hợp gần nhất
           </p>
-          <p className="mt-1 text-2xl font-black text-primary">
+          <p className="mt-1 text-2xl font-extrabold text-primary">
             {latestScore ? `${latestScore}%` : "--"}
           </p>
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Roadmap length
+            Lộ trình cải thiện
           </p>
-          <p className="mt-1 text-2xl font-black text-foreground">
-            {analysis ? `${analysis.roadmap.totalWeeks}w` : "--"}
+          <p className="mt-1 text-2xl font-extrabold text-foreground">
+            {analysis ? `${analysis.roadmap.totalWeeks} tuần` : "--"}
           </p>
         </div>
       </div>
@@ -576,7 +561,11 @@ export function DashboardPage() {
   const latestAnalysis = historyItems[0];
   const { analysis: latestAnalysisDetail, loading: analysisLoading } =
     useCvAnalysisResult(latestAnalysis?.analysisId);
-  const { jobs, totalCount, loading: jobsLoading } = useJobsCatalog({
+  const {
+    jobs,
+    totalCount,
+    loading: jobsLoading,
+  } = useJobsCatalog({
     limit: 4,
     offset: 0,
     sortBy: "RELEVANCE",
@@ -587,7 +576,7 @@ export function DashboardPage() {
     skip: false,
   });
 
-  const displayName = user?.name?.trim() || "there";
+  const displayName = user?.name?.trim() || "bạn";
   const latestScore = clampScore(latestAnalysis?.jobMatchScore);
   const newJobsLabel = totalCount > 0 ? totalCount : jobs.length;
 
@@ -597,86 +586,55 @@ export function DashboardPage() {
   };
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle={`Xin chào, ${displayName}!`}
+      headerDescription="Xem nhanh mức độ phù hợp của CV, kỹ năng nổi bật và các công việc được đề xuất cho bạn."
+    >
       <div className="mx-auto max-w-[1480px] space-y-5">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Career command center
-            </p>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              Welcome back, {displayName}
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Track your CV performance, monitor job matches, and keep your next
-              career moves organized in one place.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/resume-optimizer" })}
-              className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              <UploadCloud className="h-4 w-4" />
-              Upload CV
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/jobs" })}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
-            >
-              <Search className="h-4 w-4" />
-              Find jobs
-            </button>
-          </div>
-        </section>
-
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Overall match"
+            label="Độ phù hợp tổng quan"
             value={latestScore ? `${latestScore}%` : "--"}
             note={
               latestAnalysis
-                ? scoreLabel(latestScore)
-                : "Run a scan to calculate your fit."
+                ? getScoreLabel(latestScore)
+                : "Hãy phân tích CV để tính mức độ phù hợp."
             }
             icon={Target}
             tone="primary"
           />
           <MetricCard
-            label={user?.baseCvId ? "Job matches" : "Open jobs"}
+            label={user?.baseCvId ? "Việc làm phù hợp" : "Việc đang mở"}
             value={jobsLoading ? "..." : newJobsLabel}
             note={
               user?.baseCvId
-                ? "Ranked with your base CV."
-                : "Upload a base CV to turn these into ranked matches."
+                ? "Các công việc phù hợp nhất dựa trên CV chính của bạn."
+                : "Tải CV chính lên để hệ thống xếp hạng mức độ phù hợp."
             }
             icon={BriefcaseBusiness}
             tone="emerald"
           />
           <MetricCard
-            label="Saved resumes"
+            label="CV đã lưu"
             value={cvs.length}
-            note="Resume files available for scans and job matching."
+            note="Các CV bạn đã tải lên sẵn sàng để phân tích và so sánh."
             icon={FileText}
             tone="blue"
           />
           <MetricCard
-            label="Roadmap length"
+            label="Lộ trình cải thiện"
             value={
               analysisLoading
                 ? "..."
                 : latestAnalysisDetail
-                  ? `${latestAnalysisDetail.roadmap.totalWeeks}w`
+                  ? `${latestAnalysisDetail.roadmap.totalWeeks} tuần`
                   : "--"
             }
             note={
               latestAnalysisDetail
-                ? `Generated for ${latestAnalysisDetail.jobContext.title}.`
-                : "Run a scan to create a job-specific roadmap."
+                ? `Được tạo cho ${latestAnalysisDetail.jobContext.title}.`
+                : "Hãy phân tích CV để tạo lộ trình theo vị trí mục tiêu."
             }
             icon={BookOpenCheck}
             tone="orange"
@@ -698,10 +656,10 @@ export function DashboardPage() {
         <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
           <DashboardCard className="p-5">
             <SectionTitle
-              title="Recommended Jobs"
+              title="Việc làm gợi ý"
               action={
                 <ActionLink
-                  label="View all jobs"
+                  label="Xem tất cả"
                   onClick={() => navigate({ to: "/jobs" })}
                 />
               }
@@ -710,7 +668,7 @@ export function DashboardPage() {
             {jobsLoading ? (
               <div className="flex min-h-[220px] items-center justify-center gap-3 text-sm text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                Loading job matches...
+                Đang tải các công việc phù hợp...
               </div>
             ) : jobs.length ? (
               <div>
@@ -724,24 +682,24 @@ export function DashboardPage() {
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-                No job recommendations yet. Upload a CV or adjust your search
-                filters to discover roles.
+                Chưa có công việc nào được đề xuất. Tải lên một CV hoặc điều
+                chỉnh bộ lọc tìm kiếm để khám phá các vị trí.
               </div>
             )}
           </DashboardCard>
 
           <DashboardCard className="p-5">
-            <SectionTitle title="Quick Actions" />
+            <SectionTitle title="Thao tác nhanh" />
             <div className="grid gap-3">
               <QuickAction
-                label="Analyze CV"
-              description="Upload or paste a CV and compare it with a job description."
+                label="Phân tích CV"
+                description="Tải lên CV mới để nhận báo cáo phù hợp và lộ trình cải thiện."
                 icon={FileSearch}
                 onClick={() => navigate({ to: "/resume-optimizer" })}
               />
               <QuickAction
-                label="Review latest match"
-                description="Review your latest score and skill gaps."
+                label="Xem báo cáo gần nhất"
+                description="Xem báo cáo phân tích CV gần nhất của bạn."
                 icon={BarChart3}
                 onClick={() =>
                   latestAnalysis
@@ -750,16 +708,18 @@ export function DashboardPage() {
                 }
               />
               <QuickAction
-                label="Manage resumes"
-                description={`${cvs.length} saved resume${
-                  cvs.length === 1 ? "" : "s"
-                } available.`}
+                label="Quản lý CV"
+                description={
+                  cvs.length
+                    ? `Bạn có ${cvs.length} CV đã lưu.`
+                    : "Bạn chưa có CV nào được lưu."
+                }
                 icon={FileText}
                 onClick={() => navigate({ to: "/resume-manager" })}
               />
               <QuickAction
-                label="View scan history"
-                description="Compare past reports and reopen your next steps."
+                label="Lịch sử phân tích"
+                description="Xem lại các phân tích CV trước đây."
                 icon={History}
                 onClick={() => navigate({ to: "/scan-history" })}
               />
@@ -774,39 +734,43 @@ export function DashboardPage() {
           />
 
           <DashboardCard className="p-5">
-              <SectionTitle title="Recent Activity" />
-              {historyItems.length ? (
-                <div className="space-y-3">
-                  {historyItems.slice(0, 5).map((item) => (
-                    <button
-                      key={item.analysisId}
-                      type="button"
-                      onClick={() => openAnalysis(item.analysisId)}
-                      className="flex w-full items-start gap-3 rounded-xl border border-border bg-background/50 p-3 text-left hover:border-primary/30 hover:bg-primary/5"
-                    >
-                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <Clock3 className="h-4 w-4" />
+            <SectionTitle title="Hoạt động gần đây" />
+            {historyItems.length ? (
+              <div className="space-y-3">
+                {historyItems.slice(0, 5).map((item) => (
+                  <button
+                    key={item.analysisId}
+                    type="button"
+                    onClick={() => openAnalysis(item.analysisId)}
+                    className="flex w-full items-start gap-3 rounded-xl border border-border bg-background/50 p-3 text-left hover:border-primary/30 hover:bg-primary/5"
+                  >
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Clock3 className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-1 text-sm font-bold text-foreground">
+                        {item.jobTitle || "Chưa có tên vị trí"}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="line-clamp-1 text-sm font-bold text-foreground">
-                          {item.jobTitle || "Untitled role"}
-                        </span>
-                        <span className="mt-1 block line-clamp-1 text-xs text-muted-foreground">
-                          {item.cvFilename ?? "Uploaded CV"} -{" "}
-                          {formatRelativeDate(item.createdAt)}
-                        </span>
+                      <span className="mt-1 block line-clamp-1 text-xs text-muted-foreground">
+                        {item.cvFilename ?? "CV đã tải lên"} -{" "}
+                        {formatRelativeDate(item.createdAt, {
+                          fallback: "Không rõ ngày",
+                          yesterdayLabel: "Hôm qua",
+                        })}
                       </span>
-                      <span className="shrink-0 text-sm font-black text-primary">
-                        {clampScore(item.jobMatchScore)}%
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-dashed border-border bg-muted/40 p-5 text-sm text-muted-foreground">
-                  Your scan activity will appear here after your first report.
-                </div>
-              )}
+                    </span>
+                    <span className="shrink-0 text-sm font-extrabold text-primary">
+                      {clampScore(item.jobMatchScore)}%
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-border bg-muted/40 p-5 text-sm text-muted-foreground">
+                Lịch sử phân tích sẽ xuất hiện tại đây sau khi bạn có báo cáo
+                đầu tiên.
+              </div>
+            )}
           </DashboardCard>
         </section>
 

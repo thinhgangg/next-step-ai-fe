@@ -1,21 +1,14 @@
-import { useState } from "react";
 import { AppShell } from "@/shared/ui/app-shell";
 import { ScanHistorySection } from "@/shared/ui/scan-history-section";
-import { getHasScannedCv, setHasScannedCv } from "@/shared/config/scan-status";
 
 export function ScanHistoryPage() {
-  const [hasScan, setHasScan] = useState(() => getHasScannedCv());
-
   return (
-    <AppShell fullWidth>
-      <ScanHistorySection
-        hasScan={hasScan}
-        onScanResume={() => {
-          setHasScannedCv(true);
-          setHasScan(true);
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }}
-      />
+    <AppShell
+      fullWidth
+      headerTitle="Lịch sử phân tích"
+      headerDescription="Xem lại các lần phân tích CV trước đó, so sánh điểm phù hợp và mở lại báo cáo khi cần."
+    >
+      <ScanHistorySection />
     </AppShell>
   );
 }

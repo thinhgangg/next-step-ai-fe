@@ -19,8 +19,8 @@ export function GoogleCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-foreground [font-family:'Instrument_Sans',sans-serif]">
-      <p className="text-base font-medium">Dang dang nhap...</p>
+    <div className="flex min-h-screen items-center justify-center bg-background text-foreground font-sans">
+      <p className="text-base font-medium">Đang đăng nhập...</p>
     </div>
   );
 }

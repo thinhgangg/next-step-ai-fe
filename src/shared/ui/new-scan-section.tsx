@@ -6,6 +6,7 @@ import {
   CloudUpload,
   FileText,
   Loader2,
+  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -15,37 +16,54 @@ import {
   useUserCvs,
 } from "@/features/cv/model/cv.model";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
+import { FilterSelect, type SelectOption } from "@/shared/ui/filter-select";
 
 type NewScanSectionProps = {
   onScan?: () => void;
 };
 
 type InputMode = "file" | "paste";
+type JobInputMode = InputMode | "attached";
 type ResumeInputMode = InputMode | "saved";
+type InputModeDropdown = "resume" | "job" | null;
 
 const MIN_JOB_DESCRIPTION_LENGTH = 30;
 const MIN_JOB_DESCRIPTION_WORDS = 8;
 const MIN_UNIQUE_JOB_DESCRIPTION_WORDS = 5;
 
 const scanProgressMessages = [
-  "Uploading resume...",
-  "Reading resume content...",
-  "Analyzing job requirements...",
-  "Comparing your resume with this job...",
-  "Finding matched and missing skills...",
-  "Building your learning roadmap...",
-  "Preparing your match report...",
+  "Đang tải lên CV...",
+  "Đang đọc nội dung CV...",
+  "Đang phân tích yêu cầu công việc...",
+  "Đang so khớp CV với công việc...",
+  "Đang tìm kỹ năng phù hợp và còn thiếu...",
+  "Đang tạo lộ trình cải thiện...",
+  "Đang chuẩn bị báo cáo phân tích...",
 ];
 
+const RESUME_INPUT_MODE_OPTIONS: Array<SelectOption<ResumeInputMode>> = [
+  { value: "file", label: "Tải lên CV" },
+  { value: "saved", label: "CV đã lưu" },
+  { value: "paste", label: "Dán văn bản" },
+];
+
+const BASE_JOB_INPUT_MODE_OPTIONS: Array<SelectOption<JobInputMode>> = [
+  { value: "file", label: "Tải lên JD" },
+  { value: "paste", label: "Dán văn bản" },
+];
+
+const inputModeButtonClassName =
+  "h-8 w-[132px] justify-between text-xs font-medium text-muted-foreground";
+
 function formatUploadDate(value?: string | null) {
-  if (!value) return "Recently uploaded";
+  if (!value) return "Tải lên gần đây";
 
   const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "Recently uploaded";
+  if (Number.isNaN(timestamp)) return "Tải lên gần đây";
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
-    month: "short",
+    month: "2-digit",
     year: "numeric",
   }).format(new Date(timestamp));
 }
@@ -61,14 +79,14 @@ function getJobDescriptionValidationMessage(value: string): string | null {
   const uniqueWords = new Set(words);
 
   if (normalized.length < MIN_JOB_DESCRIPTION_LENGTH) {
-    return "Add a fuller job description so we can compare skills, experience, and responsibilities.";
+    return "Hãy bổ sung mô tả công việc đầy đủ hơn để hệ thống có thể so sánh kỹ năng, kinh nghiệm và trách nhiệm.";
   }
 
   if (
     words.length < MIN_JOB_DESCRIPTION_WORDS ||
     uniqueWords.size < MIN_UNIQUE_JOB_DESCRIPTION_WORDS
   ) {
-    return "Paste a more complete job description with role duties, required skills, or experience details.";
+    return "Hãy dán mô tả công việc chi tiết hơn, bao gồm nhiệm vụ, kỹ năng yêu cầu hoặc kinh nghiệm liên quan.";
   }
 
   return null;
@@ -99,9 +117,14 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     Number.isFinite(attachedCvIdValue) && attachedCvIdValue > 0
       ? attachedCvIdValue
       : null;
-  const [resumeInputMode, setResumeInputMode] =
-    useState<ResumeInputMode>(attachedCvId !== null ? "saved" : "file");
-  const [jdInputMode, setJdInputMode] = useState<InputMode>("file");
+  const [resumeInputMode, setResumeInputMode] = useState<ResumeInputMode>(
+    attachedCvId !== null ? "saved" : "file",
+  );
+  const [jdInputMode, setJdInputMode] = useState<JobInputMode>(
+    urlAttachedJobId !== null ? "attached" : "file",
+  );
+  const [openInputModeDropdown, setOpenInputModeDropdown] =
+    useState<InputModeDropdown>(null);
   const [resumeText, setResumeText] = useState("");
   const [jdText, setJdText] = useState("");
   const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(
@@ -130,10 +153,32 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     () => cvs.find((cv) => Number(cv.cvId) === selectedSavedCvId) ?? null,
     [cvs, selectedSavedCvId],
   );
+  const jobInputModeOptions = useMemo<Array<SelectOption<JobInputMode>>>(
+    () =>
+      attachedJobId !== null
+        ? [
+            {
+              value: "attached",
+              label: "Công việc đã chọn",
+              description: attachedJobTitle || attachedCompany || undefined,
+            },
+            ...BASE_JOB_INPUT_MODE_OPTIONS,
+          ]
+        : BASE_JOB_INPUT_MODE_OPTIONS,
+    [attachedCompany, attachedJobId, attachedJobTitle],
+  );
+  const selectedResumeInputModeLabel =
+    RESUME_INPUT_MODE_OPTIONS.find((option) => option.value === resumeInputMode)
+      ?.label ?? "Tải lên file";
+  const safeJobInputMode =
+    jdInputMode === "attached" && attachedJobId === null ? "file" : jdInputMode;
+  const selectedJobInputModeLabel =
+    jobInputModeOptions.find((option) => option.value === safeJobInputMode)
+      ?.label ?? "Tải lên file";
   const isBusy = isUploading || isAnalyzing || isAnalyzingWithJd;
   const normalizedJdText = jdText.trim();
   const jobDescriptionValidationMessage =
-    attachedJobId === null && jdInputMode === "paste"
+    jdInputMode === "paste"
       ? getJobDescriptionValidationMessage(normalizedJdText)
       : null;
   const hasResumeInput =
@@ -141,9 +186,11 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     (resumeInputMode === "file" && selectedResumeFile !== null) ||
     (resumeInputMode === "saved" && selectedSavedCv !== null);
   const hasJdInput =
-    attachedJobId !== null ||
-    selectedJdFile !== null ||
-    (normalizedJdText.length > 0 && jobDescriptionValidationMessage === null);
+    (jdInputMode === "attached" && attachedJobId !== null) ||
+    (jdInputMode === "file" && selectedJdFile !== null) ||
+    (jdInputMode === "paste" &&
+      normalizedJdText.length > 0 &&
+      jobDescriptionValidationMessage === null);
   const canScan = hasResumeInput && hasJdInput;
 
   const clearSelectedResume = () => {
@@ -173,7 +220,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     setSelectedSavedCvId(null);
     setResumeText("");
     setUploadError(null);
-    setUploadMessage("Resume selected.");
+    setUploadMessage("Đã chọn CV.");
     event.target.value = "";
   };
 
@@ -195,12 +242,12 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       setJdText(text.trim());
       if (!isTextFile) {
         setJdMessage(
-          "Job description selected. It will be used for this scan.",
+          "Đã chọn mô tả công việc. Nó sẽ được sử dụng cho lần quét này.",
         );
       }
     } catch {
       setJdError(
-        "Could not read this job description. Paste the text instead.",
+        "Không thể đọc mô tả công việc này. Hãy dán nội dung trực tiếp thay thế.",
       );
     } finally {
       event.target.value = "";
@@ -268,23 +315,26 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       }
 
       const analysis =
-        attachedJobId !== null
+        jdInputMode === "attached" && attachedJobId !== null
           ? await analyzeCv(cvId, attachedJobId)
           : await analyzeCvWithJd(cvId, {
-              jdText: selectedJdFile ? null : normalizedJdText || null,
-              jdFileBase64: selectedJdFile
-                ? await readFileAsBase64(selectedJdFile)
-                : null,
-              jdFileName: selectedJdFile?.name ?? null,
-              jdContentType: selectedJdFile?.type || null,
+              jdText: jdInputMode === "paste" ? normalizedJdText || null : null,
+              jdFileBase64:
+                jdInputMode === "file" && selectedJdFile
+                  ? await readFileAsBase64(selectedJdFile)
+                  : null,
+              jdFileName:
+                jdInputMode === "file" ? (selectedJdFile?.name ?? null) : null,
+              jdContentType:
+                jdInputMode === "file" ? selectedJdFile?.type || null : null,
             });
 
-      setUploadMessage("Preparing your match report...");
+      setUploadMessage("Đang chuẩn bị báo cáo phân tích...");
 
       if (analysis.analysisResultId) {
         setLatestAnalysisId(analysis.analysisResultId);
       } else {
-        throw new Error("Scan completed without a report id");
+        throw new Error("Phân tích hoàn tất nhưng không có mã báo cáo.");
       }
 
       onScan?.();
@@ -293,7 +343,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
       console.error("Analyze error:", error);
       setUploadMessage(null);
       setUploadError(
-        "Scan failed. Please try again with another resume or job description.",
+        "Phân tích thất bại. Vui lòng thử lại với CV hoặc mô tả công việc khác.",
       );
     } finally {
       stopScanProgressMessages();
@@ -304,6 +354,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
     if (urlAttachedJobId !== null) {
       setDetachedJobId(urlAttachedJobId);
     }
+    setJdInputMode("file");
     const nextUrl = `${location.pathname}`;
     window.history.replaceState(window.history.state, "", nextUrl);
     navigate({
@@ -316,12 +367,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   return (
     <div className="overflow-hidden rounded-xl border border-primary/10 bg-card shadow-sm">
       <section className="border-b border-border bg-card p-5 pb-4">
-        <h2 className="text-[22px] font-bold text-foreground">
-          Scan Resume and Job Description
-        </h2>
+        <h2 className="text-[22px] font-bold text-foreground">Phân tích CV</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Start with files for the most reliable scan. Paste text only when a
-          file is not available.
+          Ưu tiên dùng file để kết quả phân tích ổn định hơn. Chỉ dán văn bản
+          khi bạn không có file sẵn.
         </p>
       </section>
 
@@ -332,24 +381,31 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-foreground">
-                  Resume
+                  CV của bạn
                 </label>
               </div>
-              <select
-                value={resumeInputMode}
-                disabled={isBusy}
-                onChange={(event) => {
-                  setResumeInputMode(event.target.value as ResumeInputMode);
+              <FilterSelect
+                label={selectedResumeInputModeLabel}
+                isOpen={openInputModeDropdown === "resume"}
+                onToggle={() =>
+                  setOpenInputModeDropdown((current) =>
+                    current === "resume" ? null : "resume",
+                  )
+                }
+                onClose={() => setOpenInputModeDropdown(null)}
+                options={RESUME_INPUT_MODE_OPTIONS}
+                onSelect={(value) => {
+                  setResumeInputMode(value);
                   setUploadError(null);
                   setUploadMessage(null);
                 }}
-                className="h-8 max-w-[170px] rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition-colors hover:border-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
-                aria-label="Choose resume input mode"
-              >
-                <option value="file">Upload file</option>
-                <option value="saved">Choose saved CV</option>
-                <option value="paste">Paste text</option>
-              </select>
+                selectedValue={resumeInputMode}
+                menuWidthClass="w-36"
+                align="right"
+                buttonClassName={inputModeButtonClassName}
+                optionLabelClassName="text-xs leading-4"
+                optionDescriptionClassName="text-[11px] leading-4"
+              />
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4">
@@ -368,7 +424,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-bold text-primary">
-                      Resume selected
+                      Đã chọn CV
                     </span>
                     <span className="mt-2 max-w-full break-words text-sm font-medium text-foreground">
                       {selectedResumeName}
@@ -382,11 +438,11 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <CloudUpload className="h-8 w-8 text-primary" />
                     )}
                     <span className="text-sm font-bold text-foreground">
-                      {isBusy ? "Processing..." : "Upload resume file"}
+                      {isBusy ? "Đang xử lý..." : "Tải lên CV"}
                     </span>
                     <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
-                      PDF, DOC, DOCX, or TXT. Use your most recent CV for a more
-                      accurate match.
+                      Hỗ trợ PDF, DOC, DOCX hoặc TXT. Hãy dùng CV mới nhất để
+                      kết quả so khớp chính xác hơn.
                     </span>
                     <input
                       type="file"
@@ -412,13 +468,13 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <p className="text-sm font-bold text-primary">
-                      Saved CV selected
+                      Đã chọn CV đã lưu
                     </p>
                     <h3 className="mt-2 line-clamp-2 break-words text-lg font-bold text-foreground">
                       {selectedSavedCv.fileName}
                     </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Uploaded {formatUploadDate(selectedSavedCv.uploadedAt)}
+                      Đã tải lên {formatUploadDate(selectedSavedCv.uploadedAt)}
                     </p>
                   </div>
                 ) : (
@@ -426,7 +482,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     {isLoadingCvs ? (
                       <div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        Loading saved CVs...
+                        Đang tải...
                       </div>
                     ) : cvs.length > 0 ? (
                       <div className="h-full space-y-2 overflow-y-auto pr-1">
@@ -441,7 +497,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                               setSelectedResumeName(null);
                               setResumeText("");
                               setUploadError(null);
-                              setUploadMessage("Saved CV selected.");
+                              setUploadMessage("Đã chọn CV đã lưu.");
                             }}
                             className="flex w-full items-center gap-3 rounded-lg border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-70"
                           >
@@ -453,7 +509,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                                 {cv.fileName}
                               </span>
                               <span className="block text-xs text-muted-foreground">
-                                Uploaded {formatUploadDate(cv.uploadedAt)}
+                                Đã tải lên {formatUploadDate(cv.uploadedAt)}
                               </span>
                             </span>
                           </button>
@@ -463,11 +519,11 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <span className="text-sm font-bold text-foreground">
-                          No saved CVs yet
+                          Không có CV đã lưu nào
                         </span>
                         <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
-                          Upload a resume file first, then it will appear here
-                          for later scans.
+                          Hãy tải CV lên trước. Sau đó CV sẽ xuất hiện tại đây
+                          để dùng cho các lần phân tích sau.
                         </span>
                       </div>
                     )}
@@ -483,7 +539,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                         clearSelectedResume();
                       }
                     }}
-                    placeholder="Paste resume text here."
+                    placeholder="Dán nội dung CV của bạn vào đây..."
                     className="h-full w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 </div>
@@ -507,29 +563,40 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
               <div className="flex items-center gap-2">
                 <BriefcaseBusiness className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-foreground">
-                  Target job
+                  Công việc mục tiêu
                 </label>
               </div>
-              {attachedJobId === null ? (
-                <select
-                  value={jdInputMode}
-                  disabled={isBusy}
-                  onChange={(event) => {
-                    setJdInputMode(event.target.value as InputMode);
-                    setJdError(null);
-                    setJdMessage(null);
-                  }}
-                  className="h-8 max-w-[150px] rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition-colors hover:border-primary focus:border-primary disabled:cursor-not-allowed disabled:opacity-70"
-                  aria-label="Choose target job input mode"
-                >
-                  <option value="file">Upload file</option>
-                  <option value="paste">Paste text</option>
-                </select>
-              ) : null}
+              <FilterSelect
+                label={selectedJobInputModeLabel}
+                isOpen={openInputModeDropdown === "job"}
+                onToggle={() =>
+                  setOpenInputModeDropdown((current) =>
+                    current === "job" ? null : "job",
+                  )
+                }
+                onClose={() => setOpenInputModeDropdown(null)}
+                options={jobInputModeOptions}
+                onSelect={(nextMode) => {
+                  setJdInputMode(nextMode);
+                  setJdError(null);
+                  setJdMessage(null);
+
+                  if (nextMode === "file" || nextMode === "paste") {
+                    setSelectedJdFile(null);
+                    setSelectedJdName(null);
+                  }
+                }}
+                selectedValue={safeJobInputMode}
+                menuWidthClass="w-36"
+                align="right"
+                buttonClassName={inputModeButtonClassName}
+                optionLabelClassName="text-xs leading-4"
+                optionDescriptionClassName="text-[11px] leading-4"
+              />
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-4">
-              {attachedJobId !== null ? (
+              {jdInputMode === "attached" && attachedJobId !== null ? (
                 <div className="relative flex h-[212px] flex-col justify-center rounded-xl border border-primary/20 bg-primary/5 p-5 pr-12">
                   <button
                     type="button"
@@ -543,10 +610,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <p className="text-sm font-bold text-primary">
-                    Target job attached
+                    Đã chọn công việc mục tiêu
                   </p>
                   <h3 className="mt-2 line-clamp-2 text-lg font-bold text-foreground">
-                    {attachedJobTitle || "Selected job"}
+                    {attachedJobTitle || "Công việc đã chọn"}
                   </h3>
                   {attachedCompany ? (
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -561,7 +628,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       type="button"
                       onClick={clearSelectedJd}
                       className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-card hover:text-foreground"
-                      aria-label="Remove selected job description"
+                      aria-label="Gỡ bỏ mô tả công việc đã chọn"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -569,7 +636,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       <CheckCircle2 className="h-5 w-5" />
                     </span>
                     <span className="text-sm font-bold text-primary">
-                      Job description selected
+                      Mô tả công việc đã chọn
                     </span>
                     <span className="mt-2 max-w-full break-words text-sm font-medium text-foreground">
                       {selectedJdName}
@@ -584,11 +651,11 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                   <label className="flex h-[212px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-background/70 px-5 py-8 text-center transition-colors hover:border-primary/50 hover:bg-primary/5">
                     <CloudUpload className="h-8 w-8 text-primary" />
                     <span className="text-sm font-bold text-foreground">
-                      Upload job description
+                      Tải lên mô tả công việc
                     </span>
                     <span className="max-w-[280px] text-xs leading-5 text-muted-foreground">
-                      TXT or MD works best today. PDF, DOC, and DOCX can be used
-                      as search hints.
+                      Hỗ trợ PDF, DOC, DOCX, TXT hoặc MD. Hãy dùng JD chi tiết
+                      để có kết quả so khớp tốt hơn.
                     </span>
                     <input
                       type="file"
@@ -612,7 +679,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
                       setJdMessage(null);
                       setJdError(null);
                     }}
-                    placeholder="Paste the job description here."
+                    placeholder="Dán mô tả công việc vào đây..."
                     className="h-full w-full resize-none bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                   />
                 </div>
@@ -637,17 +704,20 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
             onClick={() => navigate({ to: "/sample-report" })}
             className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-5 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
-            View sample report
+            <FileText className="h-4 w-4" />
+            Xem báo cáo mẫu
           </button>
 
           <button
+            type="button"
             disabled={!canScan || isBusy}
             onClick={() => {
               void handleScan();
             }}
-            className="cursor-pointer rounded-md bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
           >
-            {isBusy ? "Scanning..." : "Scan"}
+            <Sparkles className="h-4 w-4" />
+            {isBusy ? "Đang phân tích..." : "Phân tích ngay"}
           </button>
         </div>
       </section>

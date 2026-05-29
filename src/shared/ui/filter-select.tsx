@@ -21,6 +21,8 @@ type FilterSelectProps<T extends string> = {
   align?: "left" | "right";
   leadingIcon?: ReactNode;
   buttonClassName?: string;
+  optionLabelClassName?: string;
+  optionDescriptionClassName?: string;
 };
 
 export function FilterSelect<T extends string>({
@@ -36,6 +38,8 @@ export function FilterSelect<T extends string>({
   align = "left",
   leadingIcon,
   buttonClassName,
+  optionLabelClassName,
+  optionDescriptionClassName,
 }: FilterSelectProps<T>) {
   const alignmentClass = align === "left" ? "left-0" : "right-0";
 
@@ -47,10 +51,10 @@ export function FilterSelect<T extends string>({
         aria-expanded={isOpen}
         className={`flex items-center gap-1 rounded-md border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground hover:border-foreground hover:text-foreground ${buttonClassName ?? ""}`}
       >
-        {leadingIcon}
-        {label}
+        {leadingIcon ? <span className="shrink-0">{leadingIcon}</span> : null}
+        <span className="min-w-0 truncate">{label}</span>
         <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform duration-150 ${
+          className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
             isOpen ? "rotate-180" : ""
           }`}
         />
@@ -77,11 +81,19 @@ export function FilterSelect<T extends string>({
                   <span className="mt-0.5 text-muted-foreground">{item.icon}</span>
                 ) : null}
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium leading-5">
+                  <span
+                    className={`block text-sm font-medium leading-5 ${
+                      optionLabelClassName ?? ""
+                    }`}
+                  >
                     {item.label}
                   </span>
                   {item.description ? (
-                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                    <span
+                      className={`mt-0.5 block text-xs leading-5 text-muted-foreground ${
+                        optionDescriptionClassName ?? ""
+                      }`}
+                    >
                       {item.description}
                     </span>
                   ) : null}

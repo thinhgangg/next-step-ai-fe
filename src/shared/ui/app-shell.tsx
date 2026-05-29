@@ -18,6 +18,7 @@ import {
 import { BRAND } from "@/shared/config/brand";
 import { storage } from "@/shared/lib/storage";
 import { useSession } from "@/features/auth/session/session.model";
+import { useAvatarFile } from "@/features/profile/avatar.model";
 import { useProfilePreferences } from "@/features/profile/profile-preferences.model";
 
 type NavItem = {
@@ -35,39 +36,35 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", icon: Home, to: "/dashboard" },
+  { id: "dashboard", label: "Bảng điều khiển", icon: Home, to: "/dashboard" },
   {
     id: "ai-optimize",
-    label: "AI Optimize",
+    label: "Tối ưu bằng AI",
     icon: Sparkles,
     to: "/resume-optimizer",
   },
-  // { id: "cover-letter", label: "AI Cover Letter", icon: FileText },
-  // { id: "linkedin", label: "LinkedIn Scan", icon: Linkedin },
-  // { id: "job-tracker", label: "Job Tracker", icon: Calendar },
-  { id: "find-jobs", label: "Find Jobs", icon: Search, to: "/jobs" },
-  // { id: "resume-builder", label: "Resume Builder", icon: Pencil },
+  { id: "find-jobs", label: "Tìm việc", icon: Search, to: "/jobs" },
   {
     id: "resume-manager",
-    label: "Resume Manager",
+    label: "Quản lý CV",
     icon: Folder,
     to: "/resume-manager",
   },
   {
     id: "scan-history",
-    label: "Scan History",
+    label: "Lịch sử phân tích",
     icon: History,
     to: "/scan-history",
   },
   {
     id: "profile",
-    label: "Profile",
+    label: "Hồ sơ",
     icon: User,
     to: "/profile",
   },
   {
     id: "settings",
-    label: "Settings",
+    label: "Cài đặt",
     icon: Settings,
     to: "/settings",
   },
@@ -76,26 +73,40 @@ const navItems: NavItem[] = [
 type AppShellProps = {
   children: ReactNode;
   fullWidth?: boolean;
+  headerTitle?: ReactNode;
+  headerDescription?: ReactNode;
+  headerActions?: ReactNode;
 };
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "nextstep.sidebar.collapsed";
 
-export function AppShell({ children, fullWidth = false }: AppShellProps) {
-  const [activeTab, setActiveTab] = useState<string>("dashboard");
+export function AppShell({
+  children,
+  fullWidth = false,
+  headerTitle,
+  headerDescription,
+  headerActions,
+}: AppShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return storage.get(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true";
   });
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { logout, user, isSessionLoading } = useSession();
+  const [hasAvatarLoadError, setHasAvatarLoadError] = useState(false);
+  const { logout, user } = useSession();
   const { profile } = useProfilePreferences(user);
+  const { avatarSrc } = useAvatarFile(user?.avatar);
   const location = useLocation();
   const navigate = useNavigate();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const displayName = profile.fullName;
-  const displayEmail = profile.email;
-  const avatarFallback = displayName.charAt(0).toUpperCase() || "U";
+  const displayName = profile.fullName || user?.name || "Người dùng";
+  const displayEmail = profile.email || user?.email || "";
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+  const visibleAvatarSrc = hasAvatarLoadError ? null : avatarSrc;
 
+  useEffect(() => {
+    setHasAvatarLoadError(false);
+  }, [avatarSrc]);
   useEffect(() => {
     storage.set(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isCollapsed));
   }, [isCollapsed]);
@@ -122,21 +133,23 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
     "mx-2 w-[calc(100%-16px)] h-10 px-3 rounded-lg flex items-center gap-3 text-left";
 
   return (
-    <div className="flex h-screen bg-background text-foreground font-[Instrument_Sans,sans-serif]">
+    <div className="flex h-screen bg-background text-foreground font-sans">
       <aside
         className={`${
           isCollapsed ? "w-[72px]" : "w-[220px]"
         } bg-card border-r border-border flex flex-col overflow-hidden flex-shrink-0 transition-all duration-300 z-10`}
       >
         <div
-          className={`h-16 flex items-center border-b border-border ${isCollapsed ? "justify-center" : "px-3 gap-2"}`}
+          className={`h-20 flex items-center border-b border-border ${
+            isCollapsed ? "justify-center" : "px-3 gap-2"
+          }`}
         >
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground rounded-md transition-colors flex-shrink-0"
-            title="Toggle sidebar"
+            title="Thu gọn/mở rộng menu"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-6 h-6" />
           </button>
 
           {!isCollapsed && (
@@ -144,7 +157,7 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
               to="/"
               className="block flex-1 overflow-hidden whitespace-nowrap"
             >
-              <div className="text-lg font-bold text-primary tracking-tight truncate">
+              <div className="text-xl font-bold text-primary tracking-tight truncate">
                 {BRAND.name}
               </div>
             </Link>
@@ -153,14 +166,15 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
 
         <div className="pt-4 pb-2">
           <button
+            onClick={() => navigate({ to: "/resume-optimizer" })}
             className={`${
               isCollapsed ? collapsedBtnClass : expandedBtnClass
             } bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors`}
-            title={isCollapsed ? "New Scan" : undefined}
+            title={isCollapsed ? "Phân tích mới" : undefined}
           >
             <Plus className="w-5 h-5 flex-shrink-0" />
             {!isCollapsed && (
-              <span className="whitespace-nowrap">New Scan</span>
+              <span className="whitespace-nowrap">Phân tích mới</span>
             )}
           </button>
         </div>
@@ -168,9 +182,7 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
         <nav className="flex-1 py-2 space-y-1 overflow-y-auto overflow-x-hidden">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.to
-              ? location.pathname === item.to
-              : item.id === activeTab;
+            const isActive = item.to ? location.pathname === item.to : false;
 
             return (
               <button
@@ -178,10 +190,7 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
                 onClick={() => {
                   if (item.to) {
                     navigate({ to: item.to });
-                    return;
                   }
-
-                  setActiveTab(item.id);
                 }}
                 className={`${
                   isCollapsed ? collapsedBtnClass : expandedBtnClass
@@ -208,39 +217,77 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
             className={`${
               isCollapsed ? collapsedBtnClass : expandedBtnClass
             } text-muted-foreground hover:bg-muted hover:text-foreground transition-colors`}
-            title={isCollapsed ? "Help" : undefined}
+            title={isCollapsed ? "Trợ giúp" : undefined}
           >
             <HelpCircle className="w-5 h-5 flex-shrink-0" />
-            {!isCollapsed && <span className="whitespace-nowrap">Help</span>}
+            {!isCollapsed && (
+              <span className="whitespace-nowrap">Trợ giúp</span>
+            )}
           </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 flex-shrink-0">
-          <h1 className="text-2xl font-bold text-foreground">
-            {isSessionLoading || !displayName
-              ? "Welcome"
-              : `Welcome, ${displayName}!`}
-          </h1>
-          <div className="flex items-center gap-3">
-            <button className="bg-accent text-accent-foreground border border-primary/20 rounded-full px-4 py-1.5 text-sm font-semibold hover:bg-background transition-colors">
-              ⭐ Get 7 days free
+        <header
+          className={`flex h-20 flex-shrink-0 items-center gap-4 border-b border-border bg-card px-6 ${
+            headerTitle ? "justify-between" : "justify-end"
+          }`}
+        >
+          {headerTitle ? (
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground">
+                {headerTitle}
+              </h1>
+              {headerDescription ? (
+                <p className="mt-1 line-clamp-1 max-w-3xl text-base leading-6 text-muted-foreground">
+                  {headerDescription}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="flex shrink-0 items-center gap-3">
+            {" "}
+            {headerActions ? (
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {headerActions}
+              </div>
+            ) : null}
+            <button className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/15">
+              <Sparkles className="h-4 w-4" />
+              Nâng cấp Pro
             </button>
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen((prev) => !prev)}
-                className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:bg-background transition-colors"
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary transition-colors hover:bg-primary/15 cursor-pointer"
               >
-                {avatarFallback}
+                {visibleAvatarSrc ? (
+                  <img
+                    src={visibleAvatarSrc}
+                    alt={displayName}
+                    onError={() => setHasAvatarLoadError(true)}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  avatarFallback
+                )}
               </button>
 
               {isUserMenuOpen && (
                 <div className="absolute right-0 top-10 w-72 bg-card border border-border rounded-xl shadow-xl overflow-hidden z-30">
                   <div className="px-4 py-3 border-b border-border flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                      <User className="w-5 h-5" />
+                    <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      {visibleAvatarSrc ? (
+                        <img
+                          src={visibleAvatarSrc}
+                          alt={displayName}
+                          onError={() => setHasAvatarLoadError(true)}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        avatarFallback
+                      )}
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">
@@ -264,21 +311,21 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
                       className="w-full px-4 py-2.5 flex items-center gap-2 text-left text-sm text-foreground hover:bg-background"
                     >
                       <Settings className="w-4 h-4" />
-                      Account Settings
+                      Cài đặt tài khoản
                     </button>
                     <button
                       type="button"
                       className="w-full px-4 py-2.5 flex items-center gap-2 text-left text-sm text-foreground hover:bg-background"
                     >
                       <Shield className="w-4 h-4" />
-                      Privacy Policy
+                      Chính sách bảo mật
                     </button>
                     <button
                       type="button"
                       className="w-full px-4 py-2.5 flex items-center gap-2 text-left text-sm text-foreground hover:bg-background"
                     >
                       <FileText className="w-4 h-4" />
-                      Terms
+                      Điều khoản
                     </button>
                   </div>
 
@@ -289,7 +336,7 @@ export function AppShell({ children, fullWidth = false }: AppShellProps) {
                       className="w-full px-3 py-2 rounded-lg flex items-center gap-2 text-left text-sm text-destructive hover:bg-destructive/10"
                     >
                       <LogOut className="w-4 h-4" />
-                      Log out
+                      Đăng xuất
                     </button>
                   </div>
                 </div>

@@ -12,7 +12,7 @@ export type JobType = (typeof JOB_TYPE_VALUES)[number];
 export type EmploymentTypeFilterOption = JobType;
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {
-  ALL: "All",
+  ALL: "Tất cả",
   FULL_TIME: "Full-time",
   PART_TIME: "Part-time",
   CONTRACT: "Contract",
@@ -37,6 +37,7 @@ export const JOB_LEVEL_VALUES = [
 export type JobLevel = (typeof JOB_LEVEL_VALUES)[number];
 
 export const WORK_STYLE_VALUES = [
+  "NONE",
   "ONSITE",
   "HYBRID",
   "REMOTE",
@@ -45,13 +46,14 @@ export const WORK_STYLE_VALUES = [
 
 export type WorkStyle = (typeof WORK_STYLE_VALUES)[number];
 
-export const DEFAULT_WORK_STYLE: WorkStyle = "HYBRID_OR_REMOTE";
+export const DEFAULT_WORK_STYLE: WorkStyle = "NONE";
 
 export const WORK_STYLE_LABELS: Record<WorkStyle, string> = {
-  ONSITE: "On-site",
+  NONE: "Chưa cập nhật",
+  ONSITE: "Onsite",
   HYBRID: "Hybrid",
   REMOTE: "Remote",
-  HYBRID_OR_REMOTE: "Hybrid or remote",
+  HYBRID_OR_REMOTE: "Hybrid hoặc Remote",
 };
 
 export const WORK_STYLE_OPTIONS = WORK_STYLE_VALUES.map((value) => ({
@@ -64,27 +66,29 @@ export const WORK_MODE_VALUES = ["ONSITE", "REMOTE", "HYBRID"] as const;
 export type WorkMode = (typeof WORK_MODE_VALUES)[number];
 
 export const WORK_MODE_LABELS: Record<WorkMode, string> = {
-  ONSITE: "On-site",
+  ONSITE: "Tại văn phòng",
   REMOTE: "Remote",
   HYBRID: "Hybrid",
 };
 
 export const EXPERIENCE_TYPE_VALUES = [
-  "WORK",
+  "FULL_TIME",
+  "PART_TIME",
   "INTERNSHIP",
-  "PROJECT",
   "FREELANCE",
-  "EDUCATION",
+  "CONTRACT",
+  "PROJECT",
 ] as const;
 
 export type ExperienceType = (typeof EXPERIENCE_TYPE_VALUES)[number];
 
 export const EXPERIENCE_TYPE_LABELS: Record<ExperienceType, string> = {
-  WORK: "Work",
+  FULL_TIME: "Full-time",
+  PART_TIME: "Part-time",
   INTERNSHIP: "Internship",
-  PROJECT: "Project",
   FREELANCE: "Freelance",
-  EDUCATION: "Education",
+  CONTRACT: "Contract",
+  PROJECT: "Project",
 };
 
 export const EXPERIENCE_TYPE_OPTIONS = EXPERIENCE_TYPE_VALUES.map((value) => ({

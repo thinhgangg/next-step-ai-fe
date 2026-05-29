@@ -44,7 +44,7 @@ export function LoginForm() {
     }
 
     return hasExpiredSession
-      ? "Your session has expired. Please log in again."
+      ? "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
       : null;
   });
 
@@ -72,7 +72,7 @@ export function LoginForm() {
   });
 
   return (
-    <main className="flex h-screen w-full bg-background [font-family:'Instrument_Sans',sans-serif] text-foreground">
+    <main className="flex h-screen w-full bg-background font-sans text-foreground">
       <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-foreground p-12 lg:flex">
         <div>
           <Link
@@ -85,10 +85,11 @@ export function LoginForm() {
 
         <div className="max-w-md">
           <h1 className="mb-4 text-5xl font-bold leading-[1.1] tracking-tight text-background xl:text-6xl">
-            Land your next job faster
+            Tìm kiếm công việc chưa bao giờ dễ dàng đến thế
           </h1>
           <p className="text-lg font-medium text-muted-foreground">
-            The precision-engineered resume builder for modern professionals.
+            Phân tích CV theo từng vị trí ứng tuyển, giúp bạn hiểu điểm mạnh,
+            điểm thiếu và cách cải thiện hồ sơ.
           </p>
         </div>
 
@@ -115,15 +116,15 @@ export function LoginForm() {
         <div className="w-full max-w-[400px]">
           <header className="mb-10 text-center lg:text-left">
             <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-              Welcome back
+              Chào mừng bạn quay lại
             </h2>
             <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
+              Chưa có tài khoản?{" "}
               <Link
                 to="/register"
                 className="font-semibold text-foreground underline-offset-4 hover:underline"
               >
-                Sign up free
+                Đăng ký ngay
               </Link>
             </p>
           </header>
@@ -143,12 +144,12 @@ export function LoginForm() {
                     htmlFor={field.name}
                     className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Email Address
+                    Email
                   </label>
                   <input
                     id={field.name}
                     type="email"
-                    placeholder="name@company.com"
+                    placeholder="name@example.com"
                     required
                     value={field.state.value}
                     onChange={(e) => field.setValue(e.target.value)}
@@ -170,7 +171,7 @@ export function LoginForm() {
                     htmlFor={field.name}
                     className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                   >
-                    Password
+                    Mật khẩu
                   </label>
 
                   <div className="relative">
@@ -188,7 +189,7 @@ export function LoginForm() {
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
                       aria-label={
-                        showPassword ? "Hide password" : "Show password"
+                        showPassword ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"
                       }
                     >
                       {showPassword ? (
@@ -204,7 +205,7 @@ export function LoginForm() {
                       to="/forgot-password"
                       className="text-xs font-semibold text-foreground hover:underline"
                     >
-                      Forgot password?
+                      Quên mật khẩu?
                     </Link>
                   </div>
 
@@ -227,7 +228,7 @@ export function LoginForm() {
               <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 {getUserFacingErrorMessage(
                   error,
-                  "An error occurred during login",
+                  "Đăng nhập không thành công. Vui lòng thử lại.",
                 )}
               </div>
             )}
@@ -237,7 +238,7 @@ export function LoginForm() {
               disabled={loading}
               className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Logging in..." : "Log In"}
+              {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
             </button>
           </form>
 
@@ -247,7 +248,7 @@ export function LoginForm() {
             </div>
             <div className="relative flex justify-center text-xs font-bold uppercase tracking-widest">
               <span className="bg-card px-4 text-muted-foreground">
-                or continue with
+                hoặc tiếp tục với
               </span>
             </div>
           </div>

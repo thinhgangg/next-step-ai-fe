@@ -13,7 +13,7 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <main className="flex h-screen w-full bg-background [font-family:'Instrument_Sans',sans-serif] text-foreground">
+    <main className="flex h-screen w-full bg-background font-sans text-foreground">
       <section className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-foreground p-12 lg:flex">
         <div>
           <Link
@@ -26,11 +26,11 @@ export function ForgotPasswordForm() {
 
         <div className="max-w-md">
           <h1 className="mb-4 text-5xl font-bold leading-[1.1] tracking-tight text-background xl:text-6xl">
-            Reset and get back on track
+            Lấy lại quyền truy cập tài khoản
           </h1>
           <p className="text-lg font-medium text-muted-foreground">
-            We will send secure reset instructions so you can continue your job
-            search quickly.
+            Nhập email của bạn, chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu để
+            bạn có thể tiếp tục sử dụng {BRAND.name}.
           </p>
         </div>
 
@@ -56,10 +56,11 @@ export function ForgotPasswordForm() {
         <div className="w-full max-w-[400px]">
           <header className="mb-10 text-center lg:text-left">
             <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
-              Forgot your password?
+              Quên mật khẩu?
             </h2>
             <p className="text-sm text-muted-foreground">
-              Enter your account email and we&apos;ll send you a reset link.
+              Nhập email tài khoản của bạn, chúng tôi sẽ gửi liên kết đặt lại
+              mật khẩu.
             </p>
           </header>
 
@@ -70,7 +71,7 @@ export function ForgotPasswordForm() {
                   htmlFor="reset-email"
                   className="block text-xs font-bold uppercase tracking-widest text-muted-foreground"
                 >
-                  Email Address
+                  Email
                 </label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -79,7 +80,7 @@ export function ForgotPasswordForm() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    placeholder="name@company.com"
+                    placeholder="name@example.com"
                     required
                     className="w-full rounded-xl border border-border bg-card py-3.5 pl-11 pr-4 text-sm transition-all placeholder:text-muted-foreground focus:border-foreground focus:outline-none"
                   />
@@ -90,14 +91,15 @@ export function ForgotPasswordForm() {
                 type="submit"
                 className="w-full rounded-xl bg-primary py-4 text-sm font-bold tracking-wide text-primary-foreground transition-all duration-150 hover:bg-primary/90 active:scale-[0.98]"
               >
-                Send reset link
+                Gửi liên kết đặt lại mật khẩu
               </button>
             </form>
           ) : (
             <div className="rounded-xl border border-border bg-muted p-4 text-sm text-foreground">
-              If an account exists for{" "}
-              <span className="font-semibold">{email}</span>, a reset link has
-              been sent.
+              Nếu tài khoản với email{" "}
+              <span className="font-semibold">{email}</span> tồn tại, liên kết
+              đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư đến của
+              bạn.
             </div>
           )}
 
@@ -107,7 +109,7 @@ export function ForgotPasswordForm() {
               className="inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-muted-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to login
+              Quay lại trang đăng nhập
             </Link>
           </div>
         </div>

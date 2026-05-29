@@ -5,11 +5,9 @@ import {
   Clock3,
   FileCheck2,
   FileSearch,
-  FileText,
   Gauge,
   Lightbulb,
   Loader2,
-  Sparkles,
   Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -22,35 +20,16 @@ import {
   type CvAnalysisHistoryItem,
 } from "@/features/cv/model/cv.model";
 import { setLatestAnalysisId } from "@/shared/config/latest-analysis";
+import {
+  SCORE_RING_TRACK_COLOR,
+  clampScore,
+  getScoreColor,
+  getScoreLabel,
+} from "@/shared/lib/score";
+import { formatRelativeDate } from "@/shared/lib/date";
 
 type Tone = "primary" | "emerald" | "amber" | "blue" | "rose";
 
-function clampScore(value?: number | null) {
-  return Math.max(0, Math.min(100, Math.round(value ?? 0)));
-}
-
-function scoreLabel(score: number) {
-  if (score >= 85) return "Excellent";
-  if (score >= 70) return "Strong";
-  if (score >= 50) return "Improving";
-  return "Needs work";
-}
-
-function formatRelativeDate(value?: string | null) {
-  if (!value) return "No date";
-
-  const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "No date";
-
-  const diffDays = Math.max(
-    0,
-    Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24)),
-  );
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  return `${diffDays} days ago`;
-}
 
 function toneClass(tone: Tone) {
   const map: Record<Tone, string> = {
@@ -64,12 +43,6 @@ function toneClass(tone: Tone) {
   return map[tone];
 }
 
-function scoreColor(score: number) {
-  if (score >= 85) return "#4f46e5";
-  if (score >= 70) return "#2563eb";
-  if (score >= 50) return "#f59e0b";
-  return "#f97316";
-}
 
 function PageCard({
   children,
@@ -120,7 +93,7 @@ function MetricCard({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
+          <p className="mt-2 text-xl font-bold tracking-tight text-foreground">
             {value}
           </p>
         </div>
@@ -144,15 +117,17 @@ function ScoreRing({ score }: { score: number }) {
     <div
       className="relative h-32 w-32 shrink-0 rounded-full"
       style={{
-        background: `conic-gradient(${scoreColor(
+        background: `conic-gradient(${getScoreColor(
           clamped,
-        )} ${clamped}%, #e9e7ff ${clamped}% 100%)`,
+        )} ${clamped}%, ${SCORE_RING_TRACK_COLOR} ${clamped}% 100%)`,
       }}
     >
       <div className="absolute inset-[9px] flex flex-col items-center justify-center rounded-full bg-card">
-        <span className="text-4xl font-black text-foreground">{clamped}%</span>
+        <span className="text-4xl font-extrabold text-foreground">
+          {clamped}%
+        </span>
         <span className="text-xs font-semibold text-muted-foreground">
-          match score
+          độ phù hợp
         </span>
       </div>
     </div>
@@ -170,27 +145,30 @@ function LatestAnalysisPanel({
 
   return (
     <PageCard className="p-5">
-      <SectionTitle title="Latest Resume Report" />
+      <SectionTitle title="Báo cáo gần nhất" />
       {latestAnalysis ? (
         <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
           <ScoreRing score={score} />
           <div className="min-w-0">
             <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-              {scoreLabel(score)}
+              {getScoreLabel(score)}
             </span>
             <h3 className="mt-3 line-clamp-2 text-xl font-bold text-foreground">
-              {latestAnalysis.jobTitle || "Untitled role"}
+              {latestAnalysis.jobTitle || "Không rõ vị trí"}
             </h3>
             <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-              {latestAnalysis.cvFilename ?? "Uploaded CV"} -{" "}
-              {formatRelativeDate(latestAnalysis.createdAt)}
+              {latestAnalysis.cvFilename ?? "CV đã tải lên"} -{" "}
+              {formatRelativeDate(latestAnalysis.createdAt, {
+                fallback: "Không rõ ngày",
+                yesterdayLabel: "Hôm qua",
+              })}
             </p>
             <button
               type="button"
               onClick={() => onOpen(latestAnalysis.analysisId)}
               className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
             >
-              View report
+              Xem báo cáo
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -199,10 +177,11 @@ function LatestAnalysisPanel({
         <div className="rounded-xl border border-dashed border-border bg-muted/40 p-6 text-center">
           <FileSearch className="mx-auto h-9 w-9 text-muted-foreground" />
           <h3 className="mt-3 text-base font-bold text-foreground">
-            No report yet
+            Chưa có báo cáo nào được tạo
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Upload a CV and choose a target job to create your first report.
+            Hãy phân tích CV đầu tiên để xem điểm mạnh, điểm thiếu và mức độ phù
+            hợp với công việc.
           </p>
         </div>
       )}
@@ -262,7 +241,7 @@ function RecentReportList({
 }) {
   return (
     <PageCard className="p-5">
-      <SectionTitle title="Recent Reports" />
+      <SectionTitle title="Báo cáo gần đây" />
       {items.length ? (
         <div className="space-y-3">
           {items.slice(0, 5).map((item) => (
@@ -281,10 +260,13 @@ function RecentReportList({
                 </span>
                 <span className="mt-1 block line-clamp-1 text-xs text-muted-foreground">
                   {item.cvFilename ?? "Uploaded CV"} -{" "}
-                  {formatRelativeDate(item.createdAt)}
+                  {formatRelativeDate(item.createdAt, {
+                    fallback: "Không rõ ngày",
+                    yesterdayLabel: "Hôm qua",
+                  })}
                 </span>
               </span>
-              <span className="shrink-0 text-sm font-black text-primary">
+              <span className="shrink-0 text-sm font-extrabold text-primary">
                 {clampScore(item.jobMatchScore)}%
               </span>
             </button>
@@ -292,7 +274,8 @@ function RecentReportList({
         </div>
       ) : (
         <p className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-          Reports from completed scans will appear here.
+          Lịch sử phân tích sẽ xuất hiện tại đây sau khi bạn có báo cáo đầu
+          tiên.
         </p>
       )}
     </PageCard>
@@ -301,15 +284,15 @@ function RecentReportList({
 
 function OptimizationTips() {
   const tips = [
-    "Use a PDF or DOCX file with clear headings and consistent spacing.",
-    "Pick a specific target job so your report can compare skills, keywords, and experience.",
-    "Add measurable project outcomes before rescanning your CV.",
-    "Keep one base CV in Resume Manager for faster job matching.",
+    "Sử dụng file PDF hoặc DOCX với tiêu đề rõ ràng và khoảng cách đồng nhất.",
+    "Chọn một vị trí ứng tuyển cụ thể để hệ thống có thể so sánh kỹ năng, từ khóa và kinh nghiệm của bạn.",
+    "Bổ sung kết quả dự án có con số cụ thể trước khi quét lại CV.",
+    "Lưu một CV gốc trong Resume Manager để tìm việc phù hợp nhanh hơn.",
   ];
 
   return (
     <PageCard className="p-5">
-      <SectionTitle title="How to Improve Your Match" />
+      <SectionTitle title="Cách cải thiện độ phù hợp" />
       <div className="space-y-3">
         {tips.map((tip) => (
           <div
@@ -353,59 +336,28 @@ export function ResumeOptimizerPage() {
   };
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Phân tích CV"
+      headerDescription="So khớp CV với JD, phát hiện kỹ năng còn thiếu và nhận gợi ý cải thiện hồ sơ."
+    >
       <div className="mx-auto max-w-[1480px] space-y-5">
-        <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Resume optimization
-            </p>
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
-              Analyze and improve your CV
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              Compare your resume with a target job, discover missing skills,
-              and turn the report into focused next steps.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/resume-manager" })}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
-            >
-              <FileText className="h-4 w-4" />
-              Resume library
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate({ to: "/scan-history" })}
-              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold text-foreground hover:bg-muted"
-            >
-              <Clock3 className="h-4 w-4" />
-              Scan history
-            </button>
-          </div>
-        </section>
-
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label="Latest match"
+            label="Phân tích gần nhất"
             value={
               historyLoading ? "..." : latestScore ? `${latestScore}%` : "--"
             }
             note={
               latestAnalysis
-                ? `${scoreLabel(latestScore)} fit for the latest target job.`
-                : "Run a scan to calculate a match score."
+                ? `${getScoreLabel(latestScore)}`
+                : "Chưa có phân tích nào được thực hiện"
             }
             icon={Target}
             tone="primary"
           />
           <MetricCard
-            label="ATS readiness"
+            label="Điểm ATS"
             value={
               analysisLoading
                 ? "..."
@@ -413,21 +365,21 @@ export function ResumeOptimizerPage() {
                   ? `${clampScore(atsScore)}%`
                   : "--"
             }
-            note="Based on your latest resume scan."
+            note="Dựa trên lần phân tích CV gần nhất."
             icon={Gauge}
             tone="blue"
           />
           <MetricCard
-            label="Recognized skills"
+            label="Kỹ năng được nhận diện"
             value={analysisLoading ? "..." : recognizedSkills}
-            note="Skills found in your latest resume scan."
+            note="Các kỹ năng được tìm thấy trong lần phân tích CV gần nhất."
             icon={CheckCircle2}
             tone="emerald"
           />
           <MetricCard
-            label="Saved resumes"
+            label="CV đã lưu"
             value={cvsLoading ? "..." : cvs.length}
-            note="CV files available in your resume library."
+            note="Các file CV có sẵn trong thư viện CV của bạn."
             icon={FileCheck2}
             tone="amber"
           />
@@ -438,18 +390,18 @@ export function ResumeOptimizerPage() {
             <NewScanSection />
             <div className="grid gap-5 lg:grid-cols-2">
               <InsightList
-                title="What Looks Strong"
+                title="Điểm mạnh của CV"
                 icon={CheckCircle2}
                 tone="emerald"
                 items={strengths}
-                emptyText="Strengths will appear after your next scan."
+                emptyText="Điểm mạnh sẽ xuất hiện sau lần phân tích tiếp theo."
               />
               <InsightList
-                title="What to Improve"
+                title="Điểm cần cải thiện"
                 icon={Lightbulb}
                 tone="amber"
                 items={recommendations}
-                emptyText="Suggestions will appear after your next scan."
+                emptyText="Gợi ý sẽ xuất hiện sau lần phân tích tiếp theo."
               />
             </div>
           </div>
@@ -461,11 +413,11 @@ export function ResumeOptimizerPage() {
             />
 
             <PageCard className="p-5">
-              <SectionTitle title="Missing Keywords" />
+              <SectionTitle title="Từ khóa còn thiếu" />
               {analysisLoading ? (
                 <div className="flex min-h-[120px] items-center justify-center gap-3 text-sm text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  Loading keywords...
+                  Đang tải...
                 </div>
               ) : missingSkills.length ? (
                 <div className="flex flex-wrap gap-2">
@@ -480,8 +432,8 @@ export function ResumeOptimizerPage() {
                 </div>
               ) : (
                 <p className="rounded-xl border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Missing keywords will appear after matching a CV with a target
-                  job.
+                  Các từ khóa còn thiếu sẽ xuất hiện sau khi bạn so khớp CV với
+                  công việc mục tiêu.
                 </p>
               )}
             </PageCard>
