@@ -11,6 +11,7 @@ type CurrentUser = {
   userId: string;
   name: string;
   email: string;
+  role?: string | null;
   avatar?: string | null;
   baseCvId?: number | null;
   currentRole?: string | null;

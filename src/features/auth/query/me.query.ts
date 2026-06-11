@@ -6,6 +6,7 @@ export const ME_QUERY = gql`
       userId
       name
       email
+      role
       avatar
       baseCvId
       currentRole
