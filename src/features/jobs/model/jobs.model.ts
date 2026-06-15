@@ -105,5 +105,6 @@ export function useJobsCatalog({
     totalCount: query.data?.getJobs.totalCount ?? 0,
     loading: query.loading,
     error: query.error,
+    refetch: query.refetch,
   };
 }

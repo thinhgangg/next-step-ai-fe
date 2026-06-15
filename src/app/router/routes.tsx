@@ -15,7 +15,15 @@ import { ProfilePage } from "@/pages/profile/profile.page";
 import { SettingsPage } from "@/pages/settings/settings.page";
 import { SampleReportPage } from "@/pages/sample-report/sample-report.page";
 import { GoogleCallbackPage } from "@/pages/google-callback/google-callback.page";
+import { AdminDashboardPage } from "@/pages/admin/dashboard/admin-dashboard.page";
+import { AdminUsersPage } from "@/pages/admin/users/admin-users.page";
+import { AdminJobsPage } from "@/pages/admin/jobs/admin-jobs.page";
+import { AdminCompaniesPage } from "@/pages/admin/companies/admin-companies.page";
+import { AdminSkillsPage } from "@/pages/admin/skills/admin-skills.page";
+import { AdminCoursesPage } from "@/pages/admin/courses/admin-courses.page";
+import { AdminSettingsPage } from "@/pages/admin/settings/admin-settings.page";
 import { Protected } from "./protected";
+import { AdminProtected } from "./admin-protected";
 
 export const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -134,5 +142,75 @@ export const settingsRoute = createRoute({
     <Protected>
       <SettingsPage />
     </Protected>
+  ),
+});
+
+export const adminDashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: () => (
+    <AdminProtected>
+      <AdminDashboardPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminUsersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/users",
+  component: () => (
+    <AdminProtected>
+      <AdminUsersPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminJobsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/jobs",
+  component: () => (
+    <AdminProtected>
+      <AdminJobsPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminCompaniesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/companies",
+  component: () => (
+    <AdminProtected>
+      <AdminCompaniesPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminSkillsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/skills",
+  component: () => (
+    <AdminProtected>
+      <AdminSkillsPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminCoursesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/courses",
+  component: () => (
+    <AdminProtected>
+      <AdminCoursesPage />
+    </AdminProtected>
+  ),
+});
+
+export const adminSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin/settings",
+  component: () => (
+    <AdminProtected>
+      <AdminSettingsPage />
+    </AdminProtected>
   ),
 });

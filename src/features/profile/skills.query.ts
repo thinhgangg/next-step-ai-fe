@@ -5,6 +5,7 @@ export const GET_ALL_SKILLS_QUERY = gql`
     getAllSkills {
       skillId
       name
+      category
       isActive
     }
   }

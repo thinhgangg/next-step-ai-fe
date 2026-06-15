@@ -15,6 +15,13 @@ import {
   sampleReportRoute,
   profileRoute,
   settingsRoute,
+  adminDashboardRoute,
+  adminUsersRoute,
+  adminJobsRoute,
+  adminCompaniesRoute,
+  adminSkillsRoute,
+  adminCoursesRoute,
+  adminSettingsRoute,
 } from "./routes";
 
 // Add the current app routes to the root route tree.
@@ -33,6 +40,13 @@ const routeTree = rootRoute.addChildren([
   googleCallbackRoute,
   profileRoute,
   settingsRoute,
+  adminDashboardRoute,
+  adminUsersRoute,
+  adminJobsRoute,
+  adminCompaniesRoute,
+  adminSkillsRoute,
+  adminCoursesRoute,
+  adminSettingsRoute,
 ]);
 
 export const router = createRouter({
