@@ -340,8 +340,8 @@ export function ResumeManagerPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-[300px] max-w-full">
+            <div className="flex w-full sm:w-auto items-center gap-2">
+              <div className="relative flex-1 sm:w-[300px] sm:flex-none">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={searchValue}
@@ -356,7 +356,7 @@ export function ResumeManagerPage() {
               <button
                 type="button"
                 onClick={() => void refetch()}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted"
+                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground hover:bg-muted"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Làm mới

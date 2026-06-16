@@ -132,7 +132,11 @@ export function SampleReportPage() {
   const [tab, setTab] = useState<"resume" | "jd">("resume");
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Báo cáo mẫu"
+      headerDescription="Xem mẫu báo cáo so khớp CV với JD mục tiêu."
+    >
       <div className="space-y-4 pb-12">
         <div className="rounded-lg border border-border bg-card px-4 py-3">
           <p className="text-[11px] text-muted-foreground">

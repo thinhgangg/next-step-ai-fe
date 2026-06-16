@@ -355,7 +355,7 @@ function SummaryMetric({
   icon: Icon,
   tone,
 }: {
-  label: string;
+  label: ReactNode;
   value: string | number;
   note: string;
   icon: LucideIcon;
@@ -1240,7 +1240,11 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
               }
             />
             <SummaryMetric
-              label="Lộ trình cải thiện"
+              label={
+                <>
+                  Lộ trình<span className="hidden sm:inline"> cải thiện</span>
+                </>
+              }
               value={formatWeeks(analysis.roadmap.totalWeeks)}
               note={formatDifficulty(analysis.roadmap.difficultyLevel)}
               icon={Rocket}
@@ -1272,13 +1276,13 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
               active={activeTab === "skills"}
               onClick={() => setActiveTab("skills")}
             >
-              Kỹ năng cần cải thiện
+              Kỹ năng<span className="hidden sm:inline"> cần cải thiện</span>
             </TabButton>
             <TabButton
               active={activeTab === "roadmap"}
               onClick={() => setActiveTab("roadmap")}
             >
-              Lộ trình cải thiện
+              Lộ trình<span className="hidden sm:inline"> cải thiện</span>
             </TabButton>
           </div>
 
@@ -1292,7 +1296,7 @@ function MatchReportDashboard({ analysis }: { analysis: CvAnalysisResult }) {
             }`}
           >
             <FileText className="h-4 w-4" />
-            {showJobDescription ? "Ẩn JD" : "Xem JD để đối chiếu"}
+            {showJobDescription ? "Ẩn JD" : "Xem JD"}
           </button>
         </div>
       </div>
@@ -1337,7 +1341,11 @@ function ReportState({
   loading?: boolean;
 }) {
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Báo cáo phù hợp"
+      headerDescription="Chi tiết mức độ phù hợp giữa CV và mô tả công việc."
+    >
       <div className="flex min-h-[70vh] items-center justify-center px-4">
         <Card className="max-w-md p-6 text-center">
           <div
@@ -1394,7 +1402,11 @@ export function MatchReportPage() {
   }
 
   return (
-    <AppShell fullWidth>
+    <AppShell
+      fullWidth
+      headerTitle="Báo cáo phù hợp"
+      headerDescription="Chi tiết mức độ phù hợp giữa CV và mô tả công việc."
+    >
       <MatchReportDashboard analysis={analysis} />
     </AppShell>
   );

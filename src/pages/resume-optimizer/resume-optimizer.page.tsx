@@ -147,9 +147,9 @@ function LatestAnalysisPanel({
     <PageCard className="p-5">
       <SectionTitle title="Báo cáo gần nhất" />
       {latestAnalysis ? (
-        <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+        <div className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:text-left gap-5">
           <ScoreRing score={score} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex flex-col items-center sm:items-start">
             <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
               {getScoreLabel(score)}
             </span>

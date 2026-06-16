@@ -505,130 +505,131 @@ export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
       <PageCard
         className={`p-5 ${openDropdown ? "relative z-30" : "relative"}`}
       >
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterSelect
-            label={modeLabel}
-            leadingIcon={modeLeadingIcon}
-            isOpen={openDropdown === "mode"}
-            onToggle={() => toggleDropdown("mode")}
-            onClose={closeDropdown}
-            options={MODE_OPTIONS}
-            onSelect={(value) => handleSearchModeChange(value)}
-            selectedValue={effectiveSearchMode}
-            menuWidthClass="w-[420px]"
-            buttonClassName="h-10 min-w-[132px] justify-between text-sm"
-          />
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleKeywordSearch();
+          }}
+          className="grid min-w-0 w-full gap-2 font-sans grid-cols-2 md:grid-cols-[auto_minmax(220px,2fr)_minmax(170px,220px)_110px]"
+        >
+          <div className="col-span-1 md:col-auto">
+            <FilterSelect
+              label={modeLabel}
+              leadingIcon={modeLeadingIcon}
+              isOpen={openDropdown === "mode"}
+              onToggle={() => toggleDropdown("mode")}
+              onClose={closeDropdown}
+              options={MODE_OPTIONS}
+              onSelect={(value) => handleSearchModeChange(value)}
+              selectedValue={effectiveSearchMode}
+              menuWidthClass="w-[420px]"
+              buttonClassName="h-10 w-full justify-between text-sm md:min-w-[132px] md:w-auto"
+            />
+          </div>
 
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleKeywordSearch();
-            }}
-            className="grid min-w-0 w-full md:w-auto md:flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(220px,2fr)_minmax(170px,220px)_110px]"
-          >
-            <div className="min-w-0">
-              {isKeywordMode ? (
-                <input
-                  value={keywordInput}
-                  onChange={(event) => setKeywordInput(event.target.value)}
-                  placeholder="Chức danh, từ khóa hoặc công ty"
-                  className="h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
-                />
-              ) : (
-                <FilterSelect
-                  label={cvLabel}
-                  leadingIcon={<FileText className="h-4 w-4" />}
-                  isOpen={openDropdown === "cv"}
-                  onToggle={() => toggleDropdown("cv")}
-                  onClose={closeDropdown}
-                  options={cvOptions}
-                  onSelect={handleCvChange}
-                  selectedValue={
-                    effectiveSelectedCvId !== null
-                      ? String(effectiveSelectedCvId)
-                      : undefined
-                  }
-                  menuWidthClass="w-full"
-                  menuClassName="max-h-72 overflow-y-auto"
-                  buttonClassName="h-10 w-full justify-between text-sm"
-                />
-              )}
-            </div>
-
-            <div className="relative min-w-0">
-              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="min-w-0 col-span-1 md:col-auto">
+            {isKeywordMode ? (
               <input
-                value={locationInput}
-                onChange={(event) => setLocationInput(event.target.value)}
-                placeholder="Địa điểm"
-                className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
+                value={keywordInput}
+                onChange={(event) => setKeywordInput(event.target.value)}
+                placeholder="Chức danh, từ khóa hoặc công ty"
+                className="h-10 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
               />
-            </div>
+            ) : (
+              <FilterSelect
+                label={cvLabel}
+                leadingIcon={<FileText className="h-4 w-4" />}
+                isOpen={openDropdown === "cv"}
+                onToggle={() => toggleDropdown("cv")}
+                onClose={closeDropdown}
+                options={cvOptions}
+                onSelect={handleCvChange}
+                selectedValue={
+                  effectiveSelectedCvId !== null
+                    ? String(effectiveSelectedCvId)
+                    : undefined
+                }
+                menuWidthClass="w-full"
+                menuClassName="max-h-72 overflow-y-auto"
+                buttonClassName="h-10 w-full justify-between text-sm"
+              />
+            )}
+          </div>
 
-            <button
-              type="submit"
-              className="h-10 w-full rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
-            >
-              Tìm kiếm
-            </button>
-          </form>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <FilterSelect
-            label={dateLabel}
-            isOpen={openDropdown === "date"}
-            onToggle={() => toggleDropdown("date")}
-            onClose={closeDropdown}
-            options={DATE_OPTIONS}
-            onSelect={(value) => {
-              setDateRange(value);
-              setCurrentPage(1);
-              setSelectedJobId(null);
-            }}
-            selectedValue={dateRange}
-            menuWidthClass="w-40"
-          />
-
-          <FilterSelect
-            label={employmentTypeLabel}
-            isOpen={openDropdown === "type"}
-            onToggle={() => toggleDropdown("type")}
-            onClose={closeDropdown}
-            options={JOB_TYPE_OPTIONS}
-            onSelect={(value) => {
-              setEmploymentType(value);
-              setCurrentPage(1);
-              setSelectedJobId(null);
-            }}
-            selectedValue={employmentType}
-            menuWidthClass="w-40"
-          />
-
-          <FilterSelect
-            label={experienceLabel}
-            isOpen={openDropdown === "experience"}
-            onToggle={() => toggleDropdown("experience")}
-            onClose={closeDropdown}
-            options={EXPERIENCE_OPTIONS}
-            onSelect={(value) => {
-              setExperienceRange(value);
-              setCurrentPage(1);
-              setSelectedJobId(null);
-            }}
-            selectedValue={experienceRange}
-            menuWidthClass="w-36"
-          />
+          <div className="relative min-w-0 col-span-2 md:col-auto">
+            <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={locationInput}
+              onChange={(event) => setLocationInput(event.target.value)}
+              placeholder="Địa điểm"
+              className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary"
+            />
+          </div>
 
           <button
-            type="button"
-            onClick={handleClearAll}
-            className="rounded-md px-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            type="submit"
+            className="h-10 w-full rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 col-span-2 md:col-auto"
           >
-            Xóa bộ lọc
+            Tìm kiếm
           </button>
+        </form>
 
-          <div className="ml-auto">
+        <div className="mt-3 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:items-center">
+          <div className="col-span-1 md:col-auto md:order-1">
+            <FilterSelect
+              label={dateLabel}
+              isOpen={openDropdown === "date"}
+              onToggle={() => toggleDropdown("date")}
+              onClose={closeDropdown}
+              options={DATE_OPTIONS}
+              onSelect={(value) => {
+                setDateRange(value);
+                setCurrentPage(1);
+                setSelectedJobId(null);
+              }}
+              selectedValue={dateRange}
+              menuWidthClass="w-40"
+              buttonClassName="w-full justify-between md:w-auto md:justify-start"
+            />
+          </div>
+
+          <div className="col-span-1 md:col-auto md:order-2">
+            <FilterSelect
+              label={employmentTypeLabel}
+              isOpen={openDropdown === "type"}
+              onToggle={() => toggleDropdown("type")}
+              onClose={closeDropdown}
+              options={JOB_TYPE_OPTIONS}
+              onSelect={(value) => {
+                setEmploymentType(value);
+                setCurrentPage(1);
+                setSelectedJobId(null);
+              }}
+              selectedValue={employmentType}
+              menuWidthClass="w-40"
+              buttonClassName="w-full justify-between md:w-auto md:justify-start"
+            />
+          </div>
+
+          <div className="col-span-1 md:col-auto md:order-3">
+            <FilterSelect
+              label={experienceLabel}
+              isOpen={openDropdown === "experience"}
+              onToggle={() => toggleDropdown("experience")}
+              onClose={closeDropdown}
+              options={EXPERIENCE_OPTIONS}
+              onSelect={(value) => {
+                setExperienceRange(value);
+                setCurrentPage(1);
+                setSelectedJobId(null);
+              }}
+              selectedValue={experienceRange}
+              menuWidthClass="w-36"
+              buttonClassName="w-full justify-between md:w-auto md:justify-start"
+            />
+          </div>
+
+          <div className="col-span-1 md:col-auto md:order-5 md:ml-auto">
             <FilterSelect
               label={sortLabel}
               leadingIcon={<ArrowUpDown className="h-3.5 w-3.5" />}
@@ -644,7 +645,18 @@ export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
               selectedValue={sortBy}
               menuWidthClass="w-36"
               align="right"
+              buttonClassName="w-full justify-between md:w-auto md:justify-start"
             />
+          </div>
+
+          <div className="col-span-2 flex justify-center mt-1 md:col-auto md:block md:mt-0 md:order-4">
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="rounded-md px-1.5 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Xóa bộ lọc
+            </button>
           </div>
         </div>
       </PageCard>

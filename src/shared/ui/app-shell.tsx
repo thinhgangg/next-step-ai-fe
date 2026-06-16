@@ -134,10 +134,12 @@ export function AppShell({
     };
   }, []);
 
-  const collapsedBtnClass =
-    "mx-auto w-10 h-10 rounded-lg flex items-center justify-center";
-  const expandedBtnClass =
-    "mx-2 w-[calc(100%-16px)] h-10 px-3 rounded-lg flex items-center gap-3 text-left";
+  const getBtnClass = (isCollapsed: boolean) => {
+    if (isCollapsed) {
+      return "mx-2 w-[calc(100%-16px)] h-10 px-3 rounded-lg flex items-center gap-3 text-left lg:mx-auto lg:w-10 lg:px-0 lg:justify-center lg:gap-0 transition-colors";
+    }
+    return "mx-2 w-[calc(100%-16px)] h-10 px-3 rounded-lg flex items-center gap-3 text-left transition-colors";
+  };
 
   return (
     <div className="flex h-screen bg-background text-foreground font-sans">
@@ -156,8 +158,8 @@ export function AppShell({
           ${isCollapsed ? "lg:w-[72px]" : "lg:w-[220px]"} w-[240px]`}
       >
         <div
-          className={`h-20 flex items-center border-b border-border ${
-            isCollapsed ? "lg:justify-center" : "px-3 gap-2"
+          className={`h-20 flex items-center border-b border-border px-3 gap-2 ${
+            isCollapsed ? "lg:px-0 lg:gap-0 lg:justify-center" : ""
           }`}
         >
           <button
@@ -174,30 +176,26 @@ export function AppShell({
             <Menu className="w-6 h-6" />
           </button>
 
-          {(!isCollapsed || window.innerWidth < 1024) && (
-            <Link
-              to="/"
-              className="block flex-1 overflow-hidden whitespace-nowrap"
-            >
-              <div className="text-xl font-bold text-primary tracking-tight truncate">
-                {BRAND.name}
-              </div>
-            </Link>
-          )}
+          <Link
+            to="/"
+            className={`block flex-1 overflow-hidden whitespace-nowrap transition-all ${isCollapsed ? "lg:hidden" : ""}`}
+          >
+            <div className="text-xl font-bold text-primary tracking-tight truncate">
+              {BRAND.name}
+            </div>
+          </Link>
         </div>
 
         <div className="pt-4 pb-2">
           <button
             onClick={() => navigate({ to: "/resume-optimizer" })}
-            className={`${
-              isCollapsed ? "lg:collapsedBtnClass" : ""
-            } ${isCollapsed ? collapsedBtnClass : expandedBtnClass} bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors`}
+            className={`${getBtnClass(isCollapsed)} bg-primary text-primary-foreground font-semibold hover:bg-primary/90`}
             title={isCollapsed ? "Phân tích mới" : undefined}
           >
             <Plus className="w-5 h-5 flex-shrink-0" />
-            {(!isCollapsed || window.innerWidth < 1024) && (
-              <span className="whitespace-nowrap">Phân tích mới</span>
-            )}
+            <span className={`whitespace-nowrap ${isCollapsed ? "lg:hidden" : ""}`}>
+              Phân tích mới
+            </span>
           </button>
         </div>
 
@@ -214,9 +212,7 @@ export function AppShell({
                     navigate({ to: item.to });
                   }
                 }}
-                className={`${
-                  isCollapsed ? collapsedBtnClass : expandedBtnClass
-                } transition-colors ${
+                className={`${getBtnClass(isCollapsed)} ${
                   isActive
                     ? "bg-accent text-accent-foreground font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -226,9 +222,9 @@ export function AppShell({
                 <Icon
                   className={`w-5 h-5 flex-shrink-0 ${isActive ? "text-primary" : ""}`}
                 />
-                {(!isCollapsed || window.innerWidth < 1024) && (
-                  <span className="whitespace-nowrap">{item.label}</span>
-                )}
+                <span className={`whitespace-nowrap ${isCollapsed ? "lg:hidden" : ""}`}>
+                  {item.label}
+                </span>
               </button>
             );
           })}
@@ -236,15 +232,13 @@ export function AppShell({
 
         <div className="border-t border-border py-4">
           <button
-            className={`${
-              isCollapsed ? collapsedBtnClass : expandedBtnClass
-            } text-muted-foreground hover:bg-muted hover:text-foreground transition-colors`}
+            className={`${getBtnClass(isCollapsed)} text-muted-foreground hover:bg-muted hover:text-foreground`}
             title={isCollapsed ? "Trợ giúp" : undefined}
           >
             <HelpCircle className="w-5 h-5 flex-shrink-0" />
-            {(!isCollapsed || window.innerWidth < 1024) && (
-              <span className="whitespace-nowrap">Trợ giúp</span>
-            )}
+            <span className={`whitespace-nowrap ${isCollapsed ? "lg:hidden" : ""}`}>
+              Trợ giúp
+            </span>
           </button>
         </div>
       </aside>
@@ -283,10 +277,7 @@ export function AppShell({
                 {headerActions}
               </div>
             ) : null}
-            <button className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 sm:px-4 text-xs sm:text-sm font-semibold text-primary transition-colors hover:bg-primary/15">
-              <Sparkles className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline">Nâng cấp Pro</span>
-            </button>
+
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"

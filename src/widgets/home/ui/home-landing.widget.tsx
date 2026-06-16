@@ -464,7 +464,7 @@ export function HomeLandingWidget() {
             ) : isAuthenticated ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Vào dashboard
               </Link>

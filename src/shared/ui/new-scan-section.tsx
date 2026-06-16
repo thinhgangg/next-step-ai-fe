@@ -705,7 +705,7 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
             className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border bg-card px-5 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <FileText className="h-4 w-4" />
-            Xem báo cáo mẫu
+            Xem mẫu
           </button>
 
           <button
