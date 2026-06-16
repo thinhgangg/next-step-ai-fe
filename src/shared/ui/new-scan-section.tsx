@@ -365,8 +365,8 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-primary/10 bg-card shadow-sm">
-      <section className="border-b border-border bg-card p-5 pb-4">
+    <div className="rounded-xl border border-primary/10 bg-card shadow-sm">
+      <section className="border-b border-border bg-card p-5 pb-4 rounded-t-xl">
         <h2 className="text-[22px] font-bold text-foreground">Phân tích CV</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Ưu tiên dùng file để kết quả phân tích ổn định hơn. Chỉ dán văn bản
@@ -374,10 +374,10 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
         </p>
       </section>
 
-      <section className="bg-card p-5">
+      <section className="bg-card p-5 rounded-b-xl">
         <div className="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background/30">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+          <div className="flex flex-col rounded-xl border border-border bg-background/30">
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 rounded-t-xl">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-foreground">
@@ -558,8 +558,8 @@ export function NewScanSection({ onScan }: NewScanSectionProps) {
             </div>
           </div>
 
-          <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-background/30">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+          <div className="flex flex-col rounded-xl border border-border bg-background/30">
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3 rounded-t-xl">
               <div className="flex items-center gap-2">
                 <BriefcaseBusiness className="h-4 w-4 text-primary" />
                 <label className="text-sm font-semibold text-foreground">

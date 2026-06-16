@@ -55,10 +55,12 @@ function InfoRow({
   value?: string | number | null;
 }) {
   return (
-    <div className="grid grid-cols-[24px_180px_1fr] items-center gap-3 border-b border-border py-3 last:border-b-0">
-      <Icon className="h-4 w-4 text-muted-foreground" />
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate text-sm font-semibold text-foreground">
+    <div className="grid grid-cols-1 sm:grid-cols-[24px_180px_1fr] items-start sm:items-center gap-1.5 sm:gap-3 border-b border-border py-3 last:border-b-0">
+      <div className="flex items-center gap-2 text-muted-foreground sm:contents">
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-medium sm:font-normal">{label}</span>
+      </div>
+      <span className="min-w-0 sm:truncate text-sm font-semibold text-foreground pl-6 sm:pl-0">
         {value || "Chưa cập nhật"}
       </span>
     </div>
@@ -83,12 +85,14 @@ function LinkRow({
       href={url}
       target="_blank"
       rel="noreferrer"
-      className="grid grid-cols-[24px_180px_1fr_auto] items-center gap-3 border-b border-border py-3 text-sm last:border-b-0 hover:text-primary"
+      className="grid grid-cols-1 sm:grid-cols-[24px_180px_1fr_auto] items-start sm:items-center gap-1.5 sm:gap-3 border-b border-border py-3 text-sm last:border-b-0 hover:text-primary"
     >
-      <Icon className="h-4 w-4 text-muted-foreground" />
-      <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 truncate font-semibold">{url}</span>
-      <ExternalLink className="h-4 w-4" />
+      <div className="flex items-center gap-2 text-muted-foreground sm:contents">
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="font-medium sm:font-normal">{label}</span>
+      </div>
+      <span className="min-w-0 truncate font-semibold pl-6 sm:pl-0">{url}</span>
+      <ExternalLink className="h-4 w-4 shrink-0 self-center hidden sm:block" />
     </a>
   );
 }
@@ -328,24 +332,24 @@ export function ProfilePage() {
                           </div>
 
                           {/* Info */}
-                          <div className="grid grid-cols-[1fr_auto] items-start gap-2">
-                            <div>
-                              <h3 className="text-sm font-bold text-foreground">
+                          <div className="flex flex-col sm:grid sm:grid-cols-[1fr_auto] items-start gap-2 w-full min-w-0">
+                            <div className="min-w-0">
+                              <h3 className="text-sm font-bold text-foreground break-words">
                                 {experience.title ||
                                   "Kinh nghiệm không có tiêu đề"}
                               </h3>
-                              <p className="mt-0.5 text-sm text-muted-foreground">
+                              <p className="mt-0.5 text-sm text-muted-foreground break-words">
                                 {experience.organization ||
                                   "Chưa cập nhật tổ chức"}
                               </p>
                             </div>
-                            <div className="text-right">
+                            <div className="flex flex-row flex-wrap items-center gap-1.5 sm:flex-col sm:items-end sm:text-right mt-1 sm:mt-0">
                               {experience.type ? (
                                 <span className="inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
                                   {formatExperienceType(experience.type)}
                                 </span>
                               ) : null}
-                              <p className="mt-1 text-xs text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 {formatExperienceDate(
                                   experience.startDate,
                                   experience.endDate,

@@ -325,7 +325,7 @@ function ScoreCircle({
         </div>
       </div>
 
-      <div>
+      <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
         <span
           className={`inline-flex rounded-full border px-3 py-1 text-sm font-bold ${toneClasses(tone)}`}
         >

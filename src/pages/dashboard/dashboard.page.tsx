@@ -358,36 +358,38 @@ function JobRecommendationCard({
   const topSkills = job.skills.slice(0, 4);
 
   return (
-    <div className="flex items-center gap-4 border-b border-border py-4 last:border-b-0">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-extrabold text-primary">
-        {job.company.name.slice(0, 2).toUpperCase()}
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 border-b border-border py-4 last:border-b-0">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-background text-sm font-extrabold text-primary">
+          {job.company.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-1 text-sm font-bold text-foreground">
+            {job.title}
+          </h3>
+          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+            {job.company.name}
+            {job.location ? ` - ${job.location}` : ""}
+          </p>
+          {topSkills.length ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {topSkills.map((skill) => (
+                <span
+                  key={skill.skillId}
+                  className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                >
+                  {skill.name}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="line-clamp-1 text-sm font-bold text-foreground">
-          {job.title}
-        </h3>
-        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-          {job.company.name}
-          {job.location ? ` - ${job.location}` : ""}
-        </p>
-        {topSkills.length ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {topSkills.map((skill) => (
-              <span
-                key={skill.skillId}
-                className="rounded-md bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-              >
-                {skill.name}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 sm:pl-16">
         <button
           type="button"
           onClick={onScan}
-          className="hidden h-9 items-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:inline-flex"
+          className="h-9 flex-1 sm:flex-none inline-flex items-center justify-center rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           Phân tích
         </button>
@@ -395,7 +397,7 @@ function JobRecommendationCard({
           href={job.sourceUrl}
           target="_blank"
           rel="noreferrer"
-          className="hidden h-9 items-center rounded-lg border border-border px-3 text-sm font-semibold text-primary hover:bg-muted sm:inline-flex"
+          className="h-9 flex-1 sm:flex-none inline-flex items-center justify-center rounded-lg border border-border bg-card px-3 text-sm font-semibold text-primary hover:bg-muted"
         >
           Ứng tuyển
         </a>

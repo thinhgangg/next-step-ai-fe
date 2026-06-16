@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -305,6 +305,7 @@ function JobListItem({
 
 export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
   const navigate = useNavigate();
+  const detailsRef = useRef<HTMLElement | null>(null);
   const { user } = useSession();
   const initialSearchParams = new URLSearchParams(window.location.search);
   const initialCvIdValue = Number(initialSearchParams.get("cvId"));
@@ -523,7 +524,7 @@ export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
               event.preventDefault();
               handleKeywordSearch();
             }}
-            className="grid min-w-0 flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(220px,2fr)_minmax(170px,220px)_110px]"
+            className="grid min-w-0 w-full md:w-auto md:flex-1 grid-cols-1 gap-2 font-sans md:grid-cols-[minmax(220px,2fr)_minmax(170px,220px)_110px]"
           >
             <div className="min-w-0">
               {isKeywordMode ? (
@@ -715,7 +716,17 @@ export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
                   key={job.jobId}
                   job={job}
                   isSelected={selectedJob?.jobId === job.jobId}
-                  onClick={() => setSelectedJobId(job.jobId)}
+                  onClick={() => {
+                    setSelectedJobId(job.jobId);
+                    if (window.innerWidth < 1280) {
+                      setTimeout(() => {
+                        detailsRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }, 50);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -768,7 +779,7 @@ export function JobsBrowser({ onCreateScan }: JobsBrowserProps) {
           </div>
 
           {selectedJob ? (
-            <aside className="space-y-4">
+            <aside ref={detailsRef} className="space-y-4">
               <PageCard className="p-5">
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div className="min-w-0">

@@ -62,7 +62,7 @@ export function FilterSelect<T extends string>({
 
       {isOpen && (
         <div
-          className={`absolute ${alignmentClass} top-[calc(100%+4px)] z-20 ${menuWidthClass} rounded-lg border border-border bg-card py-1 shadow-lg ${menuClassName ?? ""}`}
+          className={`absolute ${alignmentClass} top-[calc(100%+4px)] z-20 ${menuWidthClass} max-w-[calc(100vw-32px)] rounded-lg border border-border bg-card py-1 shadow-lg ${menuClassName ?? ""}`}
         >
           {options.map((item) => (
             <button

@@ -13,14 +13,18 @@ export function AdminActionMenu({ items }: { items: AdminActionMenuItem[] }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
   }, []);
 
   return (

@@ -64,6 +64,7 @@ export function AdminShell({
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return storage.get(ADMIN_SIDEBAR_STORAGE_KEY) === "true";
   });
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const location = useLocation();
   const { user, logout } = useSession();
@@ -76,42 +77,65 @@ export function AdminShell({
   }, [isCollapsed]);
 
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
+    setIsMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
       if (!userMenuRef.current?.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("touchstart", handleOutsideClick);
+    };
   }, []);
 
   const navButtonBase = isCollapsed
-    ? "mx-auto h-10 w-10 justify-center"
+    ? "mx-auto h-10 w-10 lg:justify-center"
     : "mx-2 h-10 w-[calc(100%-16px)] gap-3 px-3";
 
   return (
     <div className="flex h-screen bg-background text-foreground font-sans">
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       <aside
-        className={`${
-          isCollapsed ? "w-[72px]" : "w-[244px]"
-        } flex shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-all duration-300`}
+        className={`bg-card border-r border-border flex flex-col overflow-hidden transition-all duration-300 z-40 lg:z-10
+          fixed inset-y-0 left-0 lg:static lg:translate-x-0 lg:flex-shrink-0
+          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
+          ${isCollapsed ? "lg:w-[72px]" : "lg:w-[244px]"} w-[240px]`}
       >
         <div
           className={`flex h-20 items-center border-b border-border ${
-            isCollapsed ? "justify-center" : "gap-2 px-3"
+            isCollapsed ? "lg:justify-center" : "gap-2 px-3"
           }`}
         >
           <button
             type="button"
-            onClick={() => setIsCollapsed((value) => !value)}
+            onClick={() => {
+              if (window.innerWidth < 1024) {
+                setIsMobileOpen(false);
+              } else {
+                setIsCollapsed((value) => !value);
+              }
+            }}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Thu gọn/mở rộng menu"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          {!isCollapsed ? (
+          {(!isCollapsed || window.innerWidth < 1024) ? (
             <Link to="/admin" className="min-w-0 flex-1">
               <p className="truncate text-lg font-extrabold tracking-tight text-primary">
                 {BRAND.name}
@@ -145,7 +169,7 @@ export function AdminShell({
                 <Icon
                   className={`h-5 w-5 shrink-0 ${isActive ? "text-primary" : ""}`}
                 />
-                {!isCollapsed ? (
+                {(!isCollapsed || window.innerWidth < 1024) ? (
                   <span className="truncate">{item.label}</span>
                 ) : null}
               </Link>
@@ -164,7 +188,7 @@ export function AdminShell({
                 <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-40" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
               </span>
-              {!isCollapsed ? (
+              {(!isCollapsed || window.innerWidth < 1024) ? (
                 <div className="min-w-0">
                   <p className="truncate text-xs font-bold text-foreground">
                     Hệ thống ổn định
@@ -180,23 +204,33 @@ export function AdminShell({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-6">
-          <div className="min-w-0">
-            {title ? (
-              <h1 className="truncate text-2xl font-extrabold tracking-tight text-foreground">
-                {title}
-              </h1>
-            ) : null}
-            {description ? (
-              <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-                {description}
-              </p>
-            ) : null}
+        <header className="flex h-20 shrink-0 items-center justify-between gap-4 border-b border-border bg-card px-4 sm:px-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden flex-shrink-0"
+              title="Mở menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0">
+              {title ? (
+                <h1 className="truncate text-lg sm:text-2xl font-extrabold tracking-tight text-foreground">
+                  {title}
+                </h1>
+              ) : null}
+              {description ? (
+                <p className="mt-0.5 line-clamp-1 text-xs sm:text-sm text-muted-foreground">
+                  {description}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
             {actions ? (
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
                 {actions}
               </div>
             ) : null}

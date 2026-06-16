@@ -143,7 +143,7 @@ export function SampleReportPage() {
           </h1>
         </div>
 
-        <div className="grid grid-cols-[190px_1fr] gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[190px_1fr] gap-4">
           <aside className="rounded-lg border border-border bg-card p-3">
             <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Match Rate
@@ -227,7 +227,7 @@ export function SampleReportPage() {
                     {searchability.map((item, idx) => (
                       <div
                         key={item.label}
-                        className={`grid grid-cols-[180px_1fr] gap-3 px-4 py-3 ${idx < searchability.length - 1 ? "border-b border-border" : ""}`}
+                        className={`grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1.5 sm:gap-3 px-4 py-3 ${idx < searchability.length - 1 ? "border-b border-border" : ""}`}
                       >
                         <p className="text-sm font-semibold text-foreground">
                           {item.label}
@@ -316,7 +316,7 @@ export function SampleReportPage() {
                     {recruiterTips.map((item, idx) => (
                       <div
                         key={item.label}
-                        className={`grid grid-cols-[180px_1fr] gap-3 px-4 py-3 ${idx < recruiterTips.length - 1 ? "border-b border-border" : ""}`}
+                        className={`grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1.5 sm:gap-3 px-4 py-3 ${idx < recruiterTips.length - 1 ? "border-b border-border" : ""}`}
                       >
                         <p className="text-sm font-semibold text-foreground">
                           {item.label}
@@ -351,7 +351,7 @@ export function SampleReportPage() {
                     {formatting.map((item, idx) => (
                       <div
                         key={item.label}
-                        className={`grid grid-cols-[180px_1fr] gap-3 px-4 py-3 ${idx < formatting.length - 1 ? "border-b border-border" : ""}`}
+                        className={`grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-1.5 sm:gap-3 px-4 py-3 ${idx < formatting.length - 1 ? "border-b border-border" : ""}`}
                       >
                         <p className="text-sm font-semibold text-foreground">
                           {item.label}

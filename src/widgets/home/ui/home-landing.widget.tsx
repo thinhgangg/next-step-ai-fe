@@ -9,6 +9,7 @@ import {
   FileText,
   ListChecks,
   Map,
+  Menu,
   MousePointerClick,
   Rocket,
   Search,
@@ -17,6 +18,7 @@ import {
   Target,
   UploadCloud,
   WandSparkles,
+  X,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState, type ComponentType } from "react";
@@ -372,9 +374,10 @@ function HeroReportPreview() {
 
 export function HomeLandingWidget() {
   const navigate = useNavigate();
-  const { isAuthenticated, isSessionLoading } = useSession();
+  const { isAuthenticated, isSessionLoading, logout } = useSession();
   const [activeSection, setActiveSection] =
     useState<SectionNavItem["id"]>("how-it-works");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const updateActiveSectionFromHash = () => {
@@ -411,6 +414,7 @@ export function HomeLandingWidget() {
                   });
                   window.history.replaceState(null, "", "/");
                   setActiveSection("how-it-works");
+                  setIsMobileMenuOpen(false);
                 }
               }}
               className="text-xl font-extrabold tracking-tight text-primary"
@@ -468,22 +472,116 @@ export function HomeLandingWidget() {
               <>
                 <Link
                   to="/login"
-                  className="hidden rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+                  className="hidden rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:inline-flex"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
+                  className="hidden md:inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md"
                 >
                   Bắt đầu miễn phí
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </>
             )}
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground md:hidden flex-shrink-0"
+              aria-expanded={isMobileMenuOpen}
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 top-16 z-30 bg-black/40 md:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Menu Panel */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-x-0 top-16 z-40 border-b border-border/70 bg-background/95 p-6 shadow-xl backdrop-blur-xl md:hidden">
+          <nav className="flex flex-col gap-4">
+            {sectionNavItems.map((item) => {
+              const isActive = activeSection === item.id;
+
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  onClick={() => {
+                    setActiveSection(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`text-base font-semibold transition-colors ${
+                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </a>
+              );
+            })}
+
+            <div className="mt-4 border-t border-border pt-4 flex flex-col gap-3">
+              {isSessionLoading ? (
+                <div className="text-sm font-semibold text-muted-foreground py-2">Đang tải...</div>
+              ) : isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    Vào dashboard
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      logout();
+                    }}
+                    className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+                  >
+                    Bắt đầu miễn phí
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </>
+              )}
+            </div>
+          </nav>
+        </div>
+      )}
 
       <main>
         <section className="relative overflow-hidden">
